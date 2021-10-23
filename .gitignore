@@ -2,4 +2,4 @@ venv
 token
 __pycache__
 .idea
-misc
+misc*
