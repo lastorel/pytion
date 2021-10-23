@@ -3,3 +3,4 @@ token
 __pycache__
 .idea
 misc*
+*tmp*

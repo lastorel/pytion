@@ -257,6 +257,7 @@ class Block(Model):
         self.has_children: bool = kwargs.get("has_children")
         self.archived: bool = kwargs.get("archived")
         self.children = LinkTo(block=self)
+        self._level = kwargs["level"] if kwargs.get("level") else 0
 
         if self.type == "paragraph":
             self.text = RichTextArray(kwargs[self.type].get("text"))
@@ -310,8 +311,6 @@ class Block(Model):
         if self.type == "table_of_contents":
             self.text = self.type
 
-        # todo add children LinkTo
-
     def __str__(self):
         return str(self.text)
 
@@ -339,7 +338,7 @@ class BlockArray(MutableSequence):
         self.array.insert(index, value)
 
     def __str__(self):
-        return "\n".join(str(b) for b in self)
+        return "\n".join(b._level * "\t" + str(b) for b in self)
 
     def __repr__(self):
         r = str(self)[:30].replace("\n", " ")

@@ -78,18 +78,25 @@ class Element(object):
             return []
         return Element(api=self.api, name="blocks", obj=BlockArray(child["results"]))
 
-    # def get_children_recursive(self, id_: Optional[str] = None, max_depth: int = 10):
-    #     if self.name != "blocks":
-    #         return None
-    #     if isinstance(id_, str) and "-" in id_:
-    #         id_ = id_.replace("-", "")
-    #     if self.obj:
-    #         id_ = self.obj.id
-    #     child = Request(self.api.session, method="get", path=self.name, id_=id_, after_path="children").result
-    #     # children object returns list of Blocks
-    #     if child["object"] != "list":
-    #         return []
-    #     return Element(api=self.api, name="blocks", obj=BlockArray(child["results"]))
+    def get_children_recursive(self, id_: Optional[str] = None, max_depth: int = 10, cur_depth: int = 0):
+        if self.name != "blocks":
+            return None
+        if isinstance(id_, str) and "-" in id_:
+            id_ = id_.replace("-", "")
+        if self.obj:
+            id_ = self.obj.id
+        child = Request(self.api.session, method="get", path=self.name, id_=id_, after_path="children").result
+        ba = BlockArray([])
+        for b in child["results"]:
+            block_obj = Block(level=cur_depth, **b)
+            ba.append(block_obj)
+            if block_obj.has_children and cur_depth < max_depth:
+                sub_element = Element(api=self.api, name="blocks").get_children_recursive(
+                    id_=block_obj.id, max_depth=max_depth, cur_depth=cur_depth+1
+                )
+                ba.extend(sub_element.obj)
+
+        return Element(api=self.api, name="blocks", obj=ba)
 
     def __repr__(self):
         if not self.obj:
