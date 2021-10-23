@@ -6,21 +6,6 @@ from collections.abc import MutableSequence
 # I wanna use pydantic, but API provide variable names of property
 
 
-class LinkTo(object):
-    def __init__(self, **kwargs):
-        self.type: str = kwargs.get("type")
-        self.id: str = kwargs.get(self.type)
-        if self.type == "page_id":
-            self.uri = "blocks"
-        elif self.type == "database_id":
-            self.uri = "databases"
-        else:
-            self.uri = None
-
-        if isinstance(self.id, str):
-            self.id = self.id.replace("-", "")
-
-
 class RichText(object):
     def __init__(self, **kwargs) -> None:
         self.plain_text: str = kwargs.get("plain_text")
@@ -271,6 +256,7 @@ class Block(Model):
         self.type: str = kwargs.get("type")
         self.has_children: bool = kwargs.get("has_children")
         self.archived: bool = kwargs.get("archived")
+        self.children = LinkTo(block=self)
 
         if self.type == "paragraph":
             self.text = RichTextArray(kwargs[self.type].get("text"))
@@ -324,8 +310,59 @@ class Block(Model):
         if self.type == "table_of_contents":
             self.text = self.type
 
+        # todo add children LinkTo
+
     def __str__(self):
         return str(self.text)
 
     def __repr__(self):
         return f"Block({str(self.text)[:30]})"
+
+
+class BlockArray(MutableSequence):
+    def __init__(self, array):
+        self.array = [Block(**b) for b in array]
+
+    def __getitem__(self, item):
+        return self.array[item]
+
+    def __setitem__(self, key, value):
+        self.array[key] = value
+
+    def __delitem__(self, key):
+        del self.array[key]
+
+    def __len__(self):
+        return len(self.array)
+
+    def insert(self, index: int, value) -> None:
+        self.array.insert(index, value)
+
+    def __str__(self):
+        return "\n".join(str(b) for b in self)
+
+    def __repr__(self):
+        r = str(self)[:30].replace("\n", " ")
+        return f"BlockArray({r})"
+
+
+class LinkTo(object):
+    def __init__(self, block: Optional[Block] = None, **kwargs):
+        if block:
+            self.type = block.object
+            self.id = block.id
+            self.after_path = "children"
+            self.uri = "blocks"
+        else:
+            self.type: str = kwargs.get("type")
+            self.id: str = kwargs.get(self.type)
+            self.after_path = ""
+            if self.type == "page_id":
+                self.uri = "blocks"
+            elif self.type == "database_id":
+                self.uri = "databases"
+            else:
+                self.uri = None
+
+        if isinstance(self.id, str):
+            self.id = self.id.replace("-", "")

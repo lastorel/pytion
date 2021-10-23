@@ -5,10 +5,10 @@ from typing import Optional, Union
 import requests
 
 from pytion.query import Request
-from pytion.models import Database, Page, Block
+from pytion.models import Database, Page, Block, BlockArray
 
 
-Models = Union[Database, Page, Block]
+Models = Union[Database, Page, Block, BlockArray]
 
 
 class Notion(object):
@@ -45,6 +45,10 @@ class Element(object):
         self.obj = obj
 
     def get(self, id_: str):
+        """
+        Get Element by ID.
+        .query.RequestError exception if not found
+        """
         if "-" in id_:
             id_ = id_.replace("-", "")
         raw_obj = Request(self.api.session, method="get", path=self.name, id_=id_).result
@@ -52,8 +56,6 @@ class Element(object):
         return self
 
     def get_parent(self, id_: Optional[str] = None):
-        if isinstance(id_, str) and "-" in id_:
-            id_ = id_.replace("-", "")
         if not self.obj:
             self.get(id_)
         if self.obj.object not in ("database", "page"):
@@ -71,8 +73,23 @@ class Element(object):
         if self.obj:
             id_ = self.obj.id
         child = Request(self.api.session, method="get", path=self.name, id_=id_, after_path="children").result
-        # todo check child
-        return Element(self.api, "blocks", child)
+        # children object returns list of Blocks
+        if child["object"] != "list":
+            return []
+        return Element(api=self.api, name="blocks", obj=BlockArray(child["results"]))
+
+    # def get_children_recursive(self, id_: Optional[str] = None, max_depth: int = 10):
+    #     if self.name != "blocks":
+    #         return None
+    #     if isinstance(id_, str) and "-" in id_:
+    #         id_ = id_.replace("-", "")
+    #     if self.obj:
+    #         id_ = self.obj.id
+    #     child = Request(self.api.session, method="get", path=self.name, id_=id_, after_path="children").result
+    #     # children object returns list of Blocks
+    #     if child["object"] != "list":
+    #         return []
+    #     return Element(api=self.api, name="blocks", obj=BlockArray(child["results"]))
 
     def __repr__(self):
         if not self.obj:
@@ -81,7 +98,3 @@ class Element(object):
 
     def __str__(self):
         return self.__repr__()
-
-    def check_obj(self, obj):
-        pass
-    # todo
