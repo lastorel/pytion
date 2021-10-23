@@ -2,7 +2,7 @@
 
 import json
 
-import envs
+import pytion.envs as envs
 
 
 class RequestError(Exception):

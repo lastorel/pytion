@@ -13,9 +13,9 @@ with open("token") as f:
 NOTION_VERSION = "2021-08-16"
 
 # Find database params
-with open("config.yaml") as f:
-    config = yaml.safe_load(f)
-    NOTION_DATABASE_ID = config["database"]["id"]
+# with open("config.yaml") as f:
+#     config = yaml.safe_load(f)
+#     NOTION_DATABASE_ID = config["database"]["id"]
 
 # every resource has `object` property (type declaration)
 # every resource has `id` property (UUIDv4)

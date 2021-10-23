@@ -4,8 +4,8 @@ from typing import Optional, Union
 
 import requests
 
-from query import Request
-from models import Database, Page, Block
+from pytion.query import Request
+from pytion.models import Database, Page, Block
 
 
 Models = Union[Database, Page, Block]
@@ -35,15 +35,7 @@ class Notion(object):
         return Element(self, name)
 
 
-# class LinkTo(object):
-#     def __init__(self, type: str, id_: str, more: Optional[str] = None):
-#         self.type = type
-#         self.id_ = id_
-#         self.more = more
-
-
 class Element(object):
-    type_map = {"page": "pages", "database": "databases", "block": "blocks"}
     class_map = {"page": Page, "database": Database, "block": Block}
 
     def __init__(self, api: Notion, name: str, obj: Optional[Models] = None):
@@ -93,6 +85,3 @@ class Element(object):
     def check_obj(self, obj):
         pass
     # todo
-
-
-no = Notion()
