@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import json
+from urllib.parse import urlencode
 
 import pytion.envs as envs
 
@@ -60,6 +61,7 @@ class Request:
         self.version = envs.NOTION_VERSION
         self.auth = {"Authorization": "Bearer " + self._token}
         self.headers = {"Notion-Version": self.version, **self.auth}
+        self.result = None
         if method:
             self.result = self.method(method, path, id_, data, after_path)
 
@@ -71,6 +73,25 @@ class Request:
         if not result.ok:
             raise RequestError(result)
         try:
-            return result.json()
+            r = result.json()
         except json.JSONDecodeError:
             raise ContentError(result)
+        self.paginate(r, method, path, id_, after_path)
+        return r
+
+    def paginate(self, result, method, path, id_, after_path):
+        if (result.get("has_more", False) is True) and (result.get("object", "") == "list"):
+            next_start = result.get("next_cursor")
+
+            # if GET method then parameters are in request string
+            # if POST method then parameter are in body string
+            if after_path:
+                after_path += "?" + urlencode({"start_cursor": next_start})
+            while next_start:
+                r = self.method(method, path, id_, after_path=after_path)
+                if r.get("object", "") == "list" and r.get("results"):
+                    result["results"].extend(r["results"])
+                if r.get("has_more"):
+                    next_start = r.get("next_cursor")
+                else:
+                    next_start = None
