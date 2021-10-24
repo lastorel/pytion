@@ -5,10 +5,10 @@ from typing import Optional, Union
 import requests
 
 from pytion.query import Request
-from pytion.models import Database, Page, Block, BlockArray
+from pytion.models import Database, Page, Block, BlockArray, PropertyValue
 
 
-Models = Union[Database, Page, Block, BlockArray]
+Models = Union[Database, Page, Block, BlockArray, PropertyValue]
 
 
 class Notion(object):
@@ -58,9 +58,7 @@ class Element(object):
     def get_parent(self, id_: Optional[str] = None):
         if not self.obj:
             self.get(id_)
-        if self.obj.object not in ("database", "page"):
-            return None
-        if self.obj.parent.uri:
+        if getattr(self.obj, "parent"):
             new_obj = Element(api=self.api, name=self.obj.parent.uri)
             return new_obj.get(self.obj.parent.id)
         return None
@@ -97,6 +95,18 @@ class Element(object):
                 ba.extend(sub_element.obj)
 
         return Element(api=self.api, name="blocks", obj=ba)
+
+    def get_page_property(self, property_id: str, id_: Optional[str] = None):
+        if self.name != "pages":
+            return None
+        if isinstance(id_, str) and "-" in id_:
+            id_ = id_.replace("-", "")
+        if self.obj:
+            id_ = self.obj.id
+        property_obj = Request(
+            self.api.session, method="get", path=self.name, id_=id_, after_path="properties/"+property_id
+        ).result
+        return Element(api=self.api, name=f"pages/{id_}/properties", obj=PropertyValue(property_obj, property_id))
 
     def __repr__(self):
         if not self.obj:

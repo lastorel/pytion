@@ -101,7 +101,10 @@ class PropertyValue(Property):
             self.value: Optional[int, float] = data["number"]
 
         if self.type == "select":
-            self.value: Optional[str] = data["select"].get("name")
+            if data["select"]:
+                self.value: Optional[str] = data["select"].get("name")
+            else:
+                self.value = None
 
         if self.type == "multi_select":
             self.value: List[str] = [v.get("name") for v in data["multi_select"]]
@@ -110,9 +113,14 @@ class PropertyValue(Property):
             self.value: bool = data["checkbox"]
 
         if self.type == "date":
-            self.value: Optional[str] = data["date"].get("start")
-            self.start: Optional[datetime] = Model.format_iso_time(data["date"].get("start"))
-            self.end: Optional[datetime] = Model.format_iso_time(data["date"].get("end"))
+            if data["date"]:
+                self.value: Optional[str] = data["date"].get("start")
+                self.start: Optional[datetime] = Model.format_iso_time(data["date"].get("start"))
+                self.end: Optional[datetime] = Model.format_iso_time(data["date"].get("end"))
+            else:
+                self.value = None
+                self.start = None
+                self.end = None
 
         if "time" in self.type:
             self.value: Optional[datetime] = Model.format_iso_time(data.get(self.type))
@@ -258,6 +266,7 @@ class Block(Model):
         self.archived: bool = kwargs.get("archived")
         self.children = LinkTo(block=self)
         self._level = kwargs["level"] if kwargs.get("level") else 0
+        self.parent = None
 
         if self.type == "paragraph":
             self.text = RichTextArray(kwargs[self.type].get("text"))
@@ -294,6 +303,8 @@ class Block(Model):
 
         if "child" in self.type:
             self.text = kwargs[self.type].get("title")
+            if self.type == "child_page":
+                self.parent = LinkTo(type="page", page=self.id)
 
         if self.type in ["embed", "image", "video", "file", "pdf", "breadcrumb"]:
             self.text = self.type
@@ -360,6 +371,9 @@ class LinkTo(object):
                 self.uri = "blocks"
             elif self.type == "database_id":
                 self.uri = "databases"
+            # when type is set manually
+            elif self.type == "page":
+                self.uri = "pages"
             else:
                 self.uri = None
 
