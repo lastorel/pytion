@@ -5,10 +5,10 @@ from typing import Optional, Union
 import requests
 
 from pytion.query import Request
-from pytion.models import Database, Page, Block, BlockArray, PropertyValue
+from pytion.models import Database, Page, Block, BlockArray, PropertyValue, PageArray
 
 
-Models = Union[Database, Page, Block, BlockArray, PropertyValue]
+Models = Union[Database, Page, Block, BlockArray, PropertyValue, PageArray]
 
 
 class Notion(object):
@@ -63,40 +63,46 @@ class Element(object):
             return new_obj.get(self.obj.parent.id)
         return None
 
-    def get_children(self, id_: Optional[str] = None):
+    def get_children(self, id_: Optional[str] = None, limit: int = 0):
         if self.name != "blocks":
             return None
         if isinstance(id_, str) and "-" in id_:
             id_ = id_.replace("-", "")
         if self.obj:
             id_ = self.obj.id
-        child = Request(self.api.session, method="get", path=self.name, id_=id_, after_path="children").result
+        child = Request(
+            self.api.session, method="get", path=self.name, id_=id_, after_path="children", limit=limit
+        ).result
         # children object returns list of Blocks
         if child["object"] != "list":
-            return []
+            return None
         return Element(api=self.api, name="blocks", obj=BlockArray(child["results"]))
 
-    def get_children_recursive(self, id_: Optional[str] = None, max_depth: int = 10, cur_depth: int = 0):
+    def get_children_recursive(
+        self, id_: Optional[str] = None, max_depth: int = 10, cur_depth: int = 0, limit: int = 0
+    ):
         if self.name != "blocks":
             return None
         if isinstance(id_, str) and "-" in id_:
             id_ = id_.replace("-", "")
         if self.obj:
             id_ = self.obj.id
-        child = Request(self.api.session, method="get", path=self.name, id_=id_, after_path="children").result
+        child = Request(
+            self.api.session, method="get", path=self.name, id_=id_, after_path="children", limit=limit
+        ).result
         ba = BlockArray([])
         for b in child["results"]:
             block_obj = Block(level=cur_depth, **b)
             ba.append(block_obj)
             if block_obj.has_children and cur_depth < max_depth:
                 sub_element = Element(api=self.api, name="blocks").get_children_recursive(
-                    id_=block_obj.id, max_depth=max_depth, cur_depth=cur_depth+1
+                    id_=block_obj.id, max_depth=max_depth, cur_depth=cur_depth+1, limit=limit
                 )
                 ba.extend(sub_element.obj)
 
         return Element(api=self.api, name="blocks", obj=ba)
 
-    def get_page_property(self, property_id: str, id_: Optional[str] = None):
+    def get_page_property(self, property_id: str, id_: Optional[str] = None, limit: int = 0):
         if self.name != "pages":
             return None
         if isinstance(id_, str) and "-" in id_:
@@ -104,9 +110,23 @@ class Element(object):
         if self.obj:
             id_ = self.obj.id
         property_obj = Request(
-            self.api.session, method="get", path=self.name, id_=id_, after_path="properties/"+property_id
+            self.api.session, method="get", path=self.name, id_=id_, after_path="properties/"+property_id, limit=limit
         ).result
         return Element(api=self.api, name=f"pages/{id_}/properties", obj=PropertyValue(property_obj, property_id))
+
+    def query_database(self, id_: Optional[str] = None, limit: int = 0):
+        if self.name != "databases":
+            return None
+        if isinstance(id_, str) and "-" in id_:
+            id_ = id_.replace("-", "")
+        if self.obj:
+            id_ = self.obj.id
+        r = Request(
+            self.api.session, method="post", path=self.name, id_=id_, after_path="query", data={}, limit=limit
+        ).result
+        if r["object"] != "list":
+            return None
+        return Element(api=self.api, name="pages", obj=PageArray(r["results"]))
 
     def __repr__(self):
         if not self.obj:

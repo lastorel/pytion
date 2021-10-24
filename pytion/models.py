@@ -128,9 +128,14 @@ class PropertyValue(Property):
         if self.type == "formula":
             formula_type = data["formula"]["type"]
             if formula_type == "date":
-                self.value: str = data["formula"]["date"].get("start")
-                self.start: Optional[datetime] = Model.format_iso_time(data["formula"]["date"].get("start"))
-                self.end: Optional[datetime] = Model.format_iso_time(data["formula"]["date"].get("end"))
+                if data["formula"]["date"]:
+                    self.value: str = data["formula"]["date"].get("start")
+                    self.start: Optional[datetime] = Model.format_iso_time(data["formula"]["date"].get("start"))
+                    self.end: Optional[datetime] = Model.format_iso_time(data["formula"]["date"].get("end"))
+                else:
+                    self.value = None
+                    self.start = None
+                    self.end = None
             else:
                 self.value: Union[str, int, float, bool] = data["formula"][formula_type]
 
@@ -329,9 +334,14 @@ class Block(Model):
         return f"Block({str(self.text)[:30]})"
 
 
-class BlockArray(MutableSequence):
+class ElementArray(MutableSequence):
+    class_map = {"page": Page, "database": Database, "block": Block}
+
     def __init__(self, array):
-        self.array = [Block(**b) for b in array]
+        self.array = []
+        for ele in array:
+            if ele.get("object") and ele["object"] in self.class_map:
+                self.array.append(self.class_map[ele["object"]](**ele))
 
     def __getitem__(self, item):
         return self.array[item]
@@ -349,11 +359,26 @@ class BlockArray(MutableSequence):
         self.array.insert(index, value)
 
     def __str__(self):
+        return "\n".join(str(b) for b in self)
+
+    def __repr__(self):
+        r = str(self)[:30].replace("\n", " ")
+        return f"ElementArray({r})"
+
+
+class BlockArray(ElementArray):
+    def __str__(self):
         return "\n".join(b._level * "\t" + str(b) for b in self)
 
     def __repr__(self):
         r = str(self)[:30].replace("\n", " ")
         return f"BlockArray({r})"
+
+
+class PageArray(ElementArray):
+    def __repr__(self):
+        r = str(self)[:30].replace("\n", " ")
+        return f"PageArray({r})"
 
 
 class LinkTo(object):
