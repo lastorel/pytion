@@ -327,6 +327,9 @@ class Block(Model):
         if self.type == "table_of_contents":
             self.text = self.type
 
+        if self.type == "unsupported":
+            self.text = "*****"
+
     def __str__(self):
         return str(self.text)
 

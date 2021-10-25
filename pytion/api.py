@@ -79,8 +79,16 @@ class Element(object):
         return Element(api=self.api, name="blocks", obj=BlockArray(child["results"]))
 
     def get_children_recursive(
-        self, id_: Optional[str] = None, max_depth: int = 10, cur_depth: int = 0, limit: int = 0
+        self, id_: Optional[str] = None, max_depth: int = 10, cur_depth: int = 0, limit: int = 0, force: bool = False
     ):
+        """
+        :param id_:
+        :param max_depth:
+        :param cur_depth:
+        :param limit:
+        :param force: get blocks in subpages too
+        :return:
+        """
         if self.name != "blocks":
             return None
         if isinstance(id_, str) and "-" in id_:
@@ -94,6 +102,9 @@ class Element(object):
         for b in child["results"]:
             block_obj = Block(level=cur_depth, **b)
             ba.append(block_obj)
+            # Do not get subpages if not force
+            if block_obj.type == "child_page" and not force:
+                continue
             if block_obj.has_children and cur_depth < max_depth:
                 sub_element = Element(api=self.api, name="blocks").get_children_recursive(
                     id_=block_obj.id, max_depth=max_depth, cur_depth=cur_depth+1, limit=limit
@@ -115,6 +126,8 @@ class Element(object):
         return Element(api=self.api, name=f"pages/{id_}/properties", obj=PropertyValue(property_obj, property_id))
 
     def query_database(self, id_: Optional[str] = None, limit: int = 0):
+        # todo: add filters
+        # todo: add sort
         if self.name != "databases":
             return None
         if isinstance(id_, str) and "-" in id_:
