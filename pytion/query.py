@@ -2,6 +2,7 @@
 
 import json
 from urllib.parse import urlencode
+from typing import Dict, Optional, Any
 
 import pytion.envs as envs
 
@@ -114,3 +115,47 @@ class Request:
                     next_start = r.get("next_cursor")
                 else:
                     next_start = None
+
+
+class Filter(object):
+    _filter_condition_types = ["text", "number", "checkbox", "select", "multi_select", "date"]
+
+    # todo accept Property or PropertyValue object to be filtered
+    def __init__(
+        self,
+        property_name: Optional[str] = None,
+        value: Optional[Any] = None,
+        property_type: Optional[str] = None,
+        condition: Optional[str] = None,
+        raw: Optional[Dict] = None,
+    ):
+        if raw:
+            self.filter = raw
+            return
+        self.property_name = property_name
+        if property_type not in self._filter_condition_types:
+            raise ValueError(f"Allowed types {self.allowed_condition_types} ({property_type} is provided)")
+        self.property_type = property_type
+        if not condition:
+            if self.property_type == "text":
+                self.condition = "contains"
+                self.value = str(value)
+            elif self.property_type == "number":
+                self.condition = "equals"
+                self.value = int(value)
+            elif self.property_type == "checkbox":
+                self.condition = "equals"
+                self.value = bool(value)
+            elif self.property_type == "select":
+                self.condition = "equals"
+                self.value = str(value)
+            elif self.property_type == "multi_select":
+                self.condition = "contains"
+                self.value = str(value)
+            elif self.property_type == "date":
+                # todo
+                pass
+
+    @property
+    def allowed_condition_types(self):
+        return ", ".join(self._filter_condition_types)
