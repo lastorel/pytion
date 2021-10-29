@@ -125,12 +125,13 @@ class Element(object):
         ).result
         return Element(api=self.api, name=f"pages/{id_}/properties", obj=PropertyValue(property_obj, property_id))
 
-    def query_database(
+    def db_query(
             self,
             id_: Optional[str] = None,
             limit: int = 0,
             filter_: Optional[Filter] = None,
             sorts: Optional[Sort] = None,
+            **kwargs,
     ):
         if self.name != "databases":
             return None
@@ -146,7 +147,7 @@ class Element(object):
             return None
         return Element(api=self.api, name="pages", obj=PageArray(r["results"]))
 
-    def filter(self, **kwargs):
+    def db_filter(self, **kwargs):
         """
         :param property_name: mandatory - full name or ID of property to filter by
         :param value: the value of this property to filter by (may be bool or datetime etc.)
@@ -157,11 +158,14 @@ class Element(object):
         :param ascending: property name to be sorted by
         :param descending: property name to be sorted by
 
-        example
-        `.filter(property_name="Done", property_type="checkbox", value=False, descending="title")`
-        `.filter(property_name="tags", property_type="multi_select", condition="is_not_empty")`
+        :param limit: 0 < int < 100 - max number of items to be returned (0 = return all)
 
-        Filters combinations does not supported.
+        examples
+        `.db_filter(property_name="Done", property_type="checkbox", value=False, descending="title")`
+        `.db_filter(property_name="tags", property_type="multi_select", condition="is_not_empty")`
+        `.db_filter(
+
+        Filters combinations does not supported. (in `raw` param only)
         """
         if self.name == "databases" and self.obj:
             sort = None
@@ -170,7 +174,7 @@ class Element(object):
             elif kwargs.get("descending"):
                 sort = Sort(property_name=kwargs["descending"], direction="descending")
             filter_obj = Filter(**kwargs)
-            return self.query_database(filter_=filter_obj, sorts=sort)
+            return self.db_query(filter_=filter_obj, sorts=sort, **kwargs)
         return None
 
     def __repr__(self):
