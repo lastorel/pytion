@@ -2,12 +2,13 @@
 
 import json
 from urllib.parse import urlencode
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, Union
 from datetime import datetime
 
 import requests
 
 import pytion.envs as envs
+from pytion.models import Property, PropertyValue
 
 
 class RequestError(Exception):
@@ -60,7 +61,6 @@ class ContentError(Exception):
 class Filter(object):
     _filter_condition_types = ["text", "number", "checkbox", "select", "multi_select", "date"]
 
-    # todo accept Property or PropertyValue object to be filtered
     def __init__(
             self,
             property_name: Optional[str] = None,
@@ -68,15 +68,30 @@ class Filter(object):
             property_type: Optional[str] = None,
             condition: Optional[str] = None,
             raw: Optional[Dict] = None,
+            property_obj: Optional[Union[Property, PropertyValue]] = None,
             **kwargs,
     ):
         if raw:
             self.filter = raw
             return
-        self.property_name = property_name
-        if property_type not in self._filter_condition_types:
+        if property_obj:
+            if property_obj.id:
+                self.property_name = property_obj.id
+            else:
+                self.property_name = property_obj.name
+            if property_obj.type in ["title", "rich_text", "url", "email", "phone"]:
+                self.property_type = "text"
+            elif "time" in property_obj.type:
+                self.property_type = "date"
+            else:
+                self.property_type = property_obj.type
+        else:
+            self.property_type = property_type
+            self.property_name = property_name
+
+        if self.property_type not in self._filter_condition_types:
             raise ValueError(f"Allowed types {self.allowed_condition_types} ({property_type} is provided)")
-        self.property_type = property_type
+
         if self.property_type == "text":
             self.condition = "contains" if not condition else condition
             self.value = str(value)
@@ -101,6 +116,9 @@ class Filter(object):
                     self.value = value.isoformat()
             else:
                 self.value = str(value)
+
+        if property_obj and not value:
+            self.value = getattr(property_obj, "value", None)
         if self.condition in [
             "is_empty", "is_not_empty", "past_week", "past_month", "past_year", "next_week", "next_month", "next_year"
         ]:

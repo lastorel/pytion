@@ -163,7 +163,7 @@ class Element(object):
         examples
         `.db_filter(property_name="Done", property_type="checkbox", value=False, descending="title")`
         `.db_filter(property_name="tags", property_type="multi_select", condition="is_not_empty")`
-        `.db_filter(
+        `.db_filter(raw=YOUR_BIG_DICT_FROM_NOTION_DOCS, limit=2)`
 
         Filters combinations does not supported. (in `raw` param only)
         """
