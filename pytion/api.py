@@ -4,7 +4,7 @@ from typing import Optional, Union
 
 import requests
 
-from pytion.query import Request
+from pytion.query import Request, Filter, Sort
 from pytion.models import Database, Page, Block, BlockArray, PropertyValue, PageArray
 
 
@@ -125,9 +125,13 @@ class Element(object):
         ).result
         return Element(api=self.api, name=f"pages/{id_}/properties", obj=PropertyValue(property_obj, property_id))
 
-    def query_database(self, id_: Optional[str] = None, limit: int = 0):
-        # todo: add filters
-        # todo: add sort
+    def query_database(
+            self,
+            id_: Optional[str] = None,
+            limit: int = 0,
+            filter_: Optional[Filter] = None,
+            sorts: Optional[Sort] = None,
+    ):
         if self.name != "databases":
             return None
         if isinstance(id_, str) and "-" in id_:
@@ -135,11 +139,39 @@ class Element(object):
         if self.obj:
             id_ = self.obj.id
         r = Request(
-            self.api.session, method="post", path=self.name, id_=id_, after_path="query", data={}, limit=limit
+            self.api.session, method="post", path=self.name, id_=id_, after_path="query",
+            data={}, limit=limit, filter_=filter_, sorts=sorts
         ).result
         if r["object"] != "list":
             return None
         return Element(api=self.api, name="pages", obj=PageArray(r["results"]))
+
+    def filter(self, **kwargs):
+        """
+        :param property_name: mandatory - full name or ID of property to filter by
+        :param value: the value of this property to filter by (may be bool or datetime etc.)
+        :param property_type: mandatory field - `text`, `number`, `checkbox`, `date`, `select` etc.
+        :param condition: optional field - it depends on the type: `starts_with`, `contains`, `equals` etc.
+        :param raw: correctly formatted dict to pass to API (instead all other params)
+
+        :param ascending: property name to be sorted by
+        :param descending: property name to be sorted by
+
+        example
+        `.filter(property_name="Done", property_type="checkbox", value=False, descending="title")`
+        `.filter(property_name="tags", property_type="multi_select", condition="is_not_empty")`
+
+        Filters combinations does not supported.
+        """
+        if self.name == "databases" and self.obj:
+            sort = None
+            if kwargs.get("ascending"):
+                sort = Sort(property_name=kwargs["ascending"], direction="ascending")
+            elif kwargs.get("descending"):
+                sort = Sort(property_name=kwargs["descending"], direction="descending")
+            filter_obj = Filter(**kwargs)
+            return self.query_database(filter_=filter_obj, sorts=sort)
+        return None
 
     def __repr__(self):
         if not self.obj:

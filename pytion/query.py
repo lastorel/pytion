@@ -3,6 +3,9 @@
 import json
 from urllib.parse import urlencode
 from typing import Dict, Optional, Any
+from datetime import datetime
+
+import requests
 
 import pytion.envs as envs
 
@@ -54,9 +57,102 @@ class ContentError(Exception):
         self.error = message
 
 
+class Filter(object):
+    _filter_condition_types = ["text", "number", "checkbox", "select", "multi_select", "date"]
+
+    # todo accept Property or PropertyValue object to be filtered
+    def __init__(
+            self,
+            property_name: Optional[str] = None,
+            value: Optional[Any] = None,
+            property_type: Optional[str] = None,
+            condition: Optional[str] = None,
+            raw: Optional[Dict] = None,
+            **kwargs,
+    ):
+        if raw:
+            self.filter = raw
+            return
+        self.property_name = property_name
+        if property_type not in self._filter_condition_types:
+            raise ValueError(f"Allowed types {self.allowed_condition_types} ({property_type} is provided)")
+        self.property_type = property_type
+        if self.property_type == "text":
+            self.condition = "contains" if not condition else condition
+            self.value = str(value)
+        elif self.property_type == "number":
+            self.condition = "equals" if not condition else condition
+            self.value = int(value)
+        elif self.property_type == "checkbox":
+            self.condition = "equals" if not condition else condition
+            self.value = bool(value)
+        elif self.property_type == "select":
+            self.condition = "equals" if not condition else condition
+            self.value = str(value)
+        elif self.property_type == "multi_select":
+            self.condition = "contains" if not condition else condition
+            self.value = str(value)
+        elif self.property_type == "date":
+            self.condition = "equals" if not condition else condition
+            if isinstance(value, datetime):
+                if not value.hour and not value.minute:
+                    self.value = str(value.date())
+                else:
+                    self.value = value.isoformat()
+            else:
+                self.value = str(value)
+        if self.condition in [
+            "is_empty", "is_not_empty", "past_week", "past_month", "past_year", "next_week", "next_month", "next_year"
+        ]:
+            self.value = True
+
+        self.filter = {
+            "property": self.property_name,
+            self.property_type: {self.condition: self.value}
+        }
+
+    @property
+    def allowed_condition_types(self):
+        return ", ".join(self._filter_condition_types)
+
+    def __repr__(self):
+        if not getattr(self, "property_type"):
+            return f"Filter({str(self.filter)})"
+        return f"Filter({self.property_name} {self.condition} {self.value})"
+
+
+class Sort(object):
+    directions = ["ascending", "descending"]
+
+    def __init__(self, property_name: str, direction: str):
+        if direction not in self.directions:
+            raise ValueError(f"Allowed types {self.directions} ({direction} is provided)")
+        self.sorts = [{"property": property_name, "direction": direction}]
+
+    def add(self, property_name: str, direction: str):
+        if direction not in self.directions:
+            raise ValueError(f"Allowed types {self.directions} ({direction} is provided)")
+        self.sorts.append({"property": property_name, "direction": direction})
+
+    def __repr__(self):
+        r = [e.values() for e in self.sorts]
+        return f"Sorts({r})"
+
+
 class Request:
     def __init__(
-        self, session, method=None, path=None, id_="", data=None, base=None, token=None, after_path=None, limit=0
+            self,
+            session: requests.Session,
+            method: Optional[str] = None,
+            path: Optional[str] = None,
+            id_: str = "",
+            data: Optional[Dict] = None,
+            base: Optional[str] = None,
+            token: Optional[str] = None,
+            after_path: Optional[str] = None,
+            limit: int = 0,
+            filter_: Optional[Filter] = None,
+            sorts: Optional[Sort] = None,
     ):
         self.session = session
         self.base = base if base else envs.NOTION_URL
@@ -65,6 +161,16 @@ class Request:
         self.auth = {"Authorization": "Bearer " + self._token}
         self.headers = {"Notion-Version": self.version, **self.auth}
         self.result = None
+        if filter_:
+            if data:
+                data["filter"] = filter_.filter
+            else:
+                data = {"filter": filter_.filter}
+        if sorts:
+            if data:
+                data["sorts"] = sorts.sorts
+            else:
+                data = {"sorts": sorts.sorts}
         if method:
             self.result = self.method(method, path, id_, data, after_path, limit)
 
@@ -116,46 +222,3 @@ class Request:
                 else:
                     next_start = None
 
-
-class Filter(object):
-    _filter_condition_types = ["text", "number", "checkbox", "select", "multi_select", "date"]
-
-    # todo accept Property or PropertyValue object to be filtered
-    def __init__(
-        self,
-        property_name: Optional[str] = None,
-        value: Optional[Any] = None,
-        property_type: Optional[str] = None,
-        condition: Optional[str] = None,
-        raw: Optional[Dict] = None,
-    ):
-        if raw:
-            self.filter = raw
-            return
-        self.property_name = property_name
-        if property_type not in self._filter_condition_types:
-            raise ValueError(f"Allowed types {self.allowed_condition_types} ({property_type} is provided)")
-        self.property_type = property_type
-        if not condition:
-            if self.property_type == "text":
-                self.condition = "contains"
-                self.value = str(value)
-            elif self.property_type == "number":
-                self.condition = "equals"
-                self.value = int(value)
-            elif self.property_type == "checkbox":
-                self.condition = "equals"
-                self.value = bool(value)
-            elif self.property_type == "select":
-                self.condition = "equals"
-                self.value = str(value)
-            elif self.property_type == "multi_select":
-                self.condition = "contains"
-                self.value = str(value)
-            elif self.property_type == "date":
-                # todo
-                pass
-
-    @property
-    def allowed_condition_types(self):
-        return ", ".join(self._filter_condition_types)
