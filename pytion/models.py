@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-
+from __future__ import annotations
 from datetime import datetime
-from typing import Optional, Dict, Union, List
+from typing import Optional, Dict, Union, List, Any
 from collections.abc import MutableSequence
+
+
 # I wanna use pydantic, but API provide variable names of property
 
 
@@ -22,6 +24,12 @@ class RichText(object):
 
     def __len__(self):
         return len(self.plain_text)
+
+    def get(self) -> Dict[str, Any]:
+        """
+        Text type supported only
+        """
+        return {"type": "text", "text": {"content": self.plain_text, "link": None}}
 
 
 class RichTextArray(MutableSequence):
@@ -49,6 +57,13 @@ class RichTextArray(MutableSequence):
     def __repr__(self):
         return f"RichTextArray({str(self)})"
 
+    def get(self) -> List[Dict[str, Any]]:
+        return [item.get() for item in self]
+
+    @classmethod
+    def create(cls, text: str):
+        return cls([{"type": "text", "plain_text": text, "text": {}}])
+
 
 class Model(object):
     """
@@ -57,6 +72,7 @@ class Model(object):
     :param created_time:
     :param last_edited_time:
     """
+
     def __init__(self, **kwargs) -> None:
         self.id = kwargs.get("id", "").replace("-", "")
         self.object = kwargs.get("object")
@@ -79,10 +95,20 @@ class Property(object):
         self.raw = data
 
     def __str__(self):
-        return self.name
+        return self.name if self.name else self.type
 
     def __repr__(self):
         return f"Property({self})"
+
+    def get(self) -> Dict[str, Dict]:
+        return {self.type: {}}
+
+    @classmethod
+    def create(cls, type_: str, **kwargs):
+        """
+        Property Schema Object (watch docs)
+        """
+        return cls({"type": type_, **kwargs})
 
 
 class PropertyValue(Property):
@@ -205,10 +231,15 @@ class Database(Model):
         super().__init__(**kwargs)
         self.cover: Optional[Dict] = kwargs.get("cover")
         self.icon: Optional[Dict] = kwargs.get("icon")
-        self.title = RichTextArray(kwargs["title"])
-        self.properties = {name: Property(value) for name, value in kwargs["properties"].items()}
-        self._parent: Dict[str, str] = kwargs.get("parent")
-        self.parent = LinkTo(**self._parent)
+        self.title = (kwargs.get("title")
+                      if isinstance(kwargs["title"], RichTextArray) or not kwargs.get("title")
+                      else RichTextArray(kwargs["title"])
+                      )
+        self.properties = {
+            name: (value if isinstance(value, Property) else Property(value))
+            for name, value in kwargs["properties"].items()
+        }
+        self.parent = kwargs["parent"] if isinstance(kwargs.get("parent"), LinkTo) else LinkTo(**kwargs["parent"])
         self.url: str = kwargs.get("url")
 
     def __str__(self):
@@ -216,6 +247,19 @@ class Database(Model):
 
     def __repr__(self):
         return f"Database({self.title})"
+
+    def get(self) -> Dict[str, Dict]:
+        new_dict = {
+            "parent": self.parent.get(),
+            "properties": {name: value.get() for name, value in self.properties.items()}
+        }
+        if self.title:
+            new_dict["title"] = self.title.get()
+        return new_dict
+
+    @classmethod
+    def create(cls, parent: LinkTo, properties: Dict[str, Property], title: Optional[RichTextArray] = None, **kwargs):
+        return cls(parent=parent, properties=properties, title=title, **kwargs)
 
 
 class Page(Model):
@@ -385,6 +429,14 @@ class PageArray(ElementArray):
 
 
 class LinkTo(object):
+    """
+    schema
+    .type = `element_type`
+    .id = `elementID`
+
+    .get() - return API like style
+    """
+
     def __init__(self, block: Optional[Block] = None, **kwargs):
         if block:
             self.type = block.object
@@ -393,7 +445,7 @@ class LinkTo(object):
             self.uri = "blocks"
         else:
             self.type: str = kwargs.get("type")
-            self.id: str = kwargs.get(self.type)
+            self.id: str = kwargs.get(self.type) if kwargs.get(self.type) else kwargs.get("id")
             self.after_path = ""
             if self.type == "page_id":
                 self.uri = "blocks"
@@ -407,3 +459,6 @@ class LinkTo(object):
 
         if isinstance(self.id, str):
             self.id = self.id.replace("-", "")
+
+    def get(self):
+        return {"type": self.type, self.type: self.id}

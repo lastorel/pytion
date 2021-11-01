@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 
 import requests
 
 from pytion.query import Request, Filter, Sort
-from pytion.models import Database, Page, Block, BlockArray, PropertyValue, PageArray
+from pytion.models import Database, Page, Block, BlockArray, PropertyValue, PageArray, LinkTo, RichTextArray, Property
 
 
 Models = Union[Database, Page, Block, BlockArray, PropertyValue, PageArray]
@@ -154,6 +154,8 @@ class Element(object):
         :param property_type: mandatory field - `text`, `number`, `checkbox`, `date`, `select` etc.
         :param condition: optional field - it depends on the type: `starts_with`, `contains`, `equals` etc.
         :param raw: correctly formatted dict to pass to API (instead all other params)
+        :param property_obj: Property or PropertyValue obj. instead of `property_name` and `property_type`,
+                             PropertyValue can put value in request, if `value` is not provided
 
         :param ascending: property name to be sorted by
         :param descending: property name to be sorted by
@@ -176,6 +178,28 @@ class Element(object):
             filter_obj = Filter(**kwargs)
             return self.db_query(filter_=filter_obj, sorts=sort, **kwargs)
         return None
+
+    def db_create(
+            self, database_obj: Database = None, parent: LinkTo = None,
+            properties: Dict[str, Property] = None, title: RichTextArray = None
+    ):
+        """
+        :param database_obj:  you can provide `Database` object or -
+                              provide the params for creating it:
+        :param parent:
+        :param properties:
+        :param title:
+        :return:
+        """
+        if self.name != "databases":
+            return None
+        if database_obj:
+            db = database_obj
+        else:
+            db = Database.create(parent=parent, properties=properties, title=title)
+        created_db = Request(self.api.session, method="post", path=self.name, data=db.get()).result
+        self.obj = Database(**created_db)
+        return self
 
     def __repr__(self):
         if not self.obj:
