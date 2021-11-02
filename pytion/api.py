@@ -205,8 +205,19 @@ class Element(object):
             self, id_: Optional[str] = None,
             title: Optional[RichTextArray] = None, properties: Optional[Dict[str, Property]] = None
     ):
-        # todo update property (rename, retype)
-        # todo add and update both
+        """
+        :param id_:         provide id of database if `self.obj` is empty
+        :param title:       provide RichTextArray text to rename database
+        :param properties:  provide dict of Property to update them
+        :return:  self
+
+
+        `rename_prop = Property.create(name="renamed")`
+        `rename_retype_prop = Property.create(type_="multi_select", name="multiselected")`
+        `retype_prop = Property.create("checkbox")`
+        `props = {"Property1_name": rename_retype_prop, "Property2_ID": retype_prop}`
+        `db = db.db_update(properties=props)`
+        """
         if self.name != "databases":
             return None
         if isinstance(id_, str) and "-" in id_:

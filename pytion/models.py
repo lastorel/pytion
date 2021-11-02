@@ -89,7 +89,7 @@ class Model(object):
 
 class Property(object):
     def __init__(self, data: Dict[str, str]):
-        self.to_delete = True if not data.get("type") else False
+        self.to_delete = True if data.get("type") is None else False
         self.id: str = data.get("id")
         self.type: str = data.get("type") if data.get("type") else ""
         self.name: str = data.get("name")
@@ -102,17 +102,26 @@ class Property(object):
         return f"Property({self})"
 
     def get(self) -> Optional[Dict[str, Dict]]:
+        # property removing while patch
         if self.to_delete:
             return None
-        return {self.type: {}}
+        # property renaming while patch
+        data = {}
+        if self.name:
+            data["name"] = self.name
+        # property retyping while patch
+        if self.type:
+            data[self.type] = {}
+        return data
 
     @classmethod
-    def create(cls, type_: str, **kwargs):
+    def create(cls, type_: str = "", **kwargs):
         """
         Property Schema Object (watch docs)
 
         + addons:
-        set type `None` to delete this Property
+        set type = `None` to delete this Property
+        set param `name` to rename this Property
         """
         return cls({"type": type_, **kwargs})
 
