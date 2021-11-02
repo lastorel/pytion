@@ -89,8 +89,9 @@ class Model(object):
 
 class Property(object):
     def __init__(self, data: Dict[str, str]):
+        self.to_delete = True if not data.get("type") else False
         self.id: str = data.get("id")
-        self.type: str = data.get("type")
+        self.type: str = data.get("type") if data.get("type") else ""
         self.name: str = data.get("name")
         self.raw = data
 
@@ -100,13 +101,18 @@ class Property(object):
     def __repr__(self):
         return f"Property({self})"
 
-    def get(self) -> Dict[str, Dict]:
+    def get(self) -> Optional[Dict[str, Dict]]:
+        if self.to_delete:
+            return None
         return {self.type: {}}
 
     @classmethod
     def create(cls, type_: str, **kwargs):
         """
         Property Schema Object (watch docs)
+
+        + addons:
+        set type `None` to delete this Property
         """
         return cls({"type": type_, **kwargs})
 

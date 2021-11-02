@@ -180,8 +180,8 @@ class Element(object):
         return None
 
     def db_create(
-            self, database_obj: Database = None, parent: LinkTo = None,
-            properties: Dict[str, Property] = None, title: RichTextArray = None
+            self, database_obj: Optional[Database] = None, parent: Optional[LinkTo] = None,
+            properties: Optional[Dict[str, Property]] = None, title: Optional[RichTextArray] = None
     ):
         """
         :param database_obj:  you can provide `Database` object or -
@@ -199,6 +199,27 @@ class Element(object):
             db = Database.create(parent=parent, properties=properties, title=title)
         created_db = Request(self.api.session, method="post", path=self.name, data=db.get()).result
         self.obj = Database(**created_db)
+        return self
+
+    def db_update(
+            self, id_: Optional[str] = None,
+            title: Optional[RichTextArray] = None, properties: Optional[Dict[str, Property]] = None
+    ):
+        # todo update property (rename, retype)
+        # todo add and update both
+        if self.name != "databases":
+            return None
+        if isinstance(id_, str) and "-" in id_:
+            id_ = id_.replace("-", "")
+        if self.obj:
+            id_ = self.obj.id
+        patch = {}
+        if title:
+            patch["title"] = title.get()
+        if properties:
+            patch["properties"] = {name: value.get() for name, value in properties.items()}
+        updated_db = Request(self.api.session, method="patch", path=self.name, id_=id_, data=patch).result
+        self.obj = Database(**updated_db)
         return self
 
     def __repr__(self):
