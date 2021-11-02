@@ -280,6 +280,8 @@ class Database(Model):
 class Page(Model):
     object = "page"
     path = "pages"
+    # todo: create
+    # todo: get api like
 
     def __init__(self, **kwargs) -> None:
         """

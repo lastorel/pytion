@@ -39,7 +39,7 @@ class Element(object):
     class_map = {"page": Page, "database": Database, "block": Block}
 
     def __init__(self, api: Notion, name: str, obj: Optional[Models] = None):
-        print(f"Creating Element({name})")
+        # print(f"Creating Element({name})")
         self.api = api
         self.name = name
         self.obj = obj
@@ -63,7 +63,7 @@ class Element(object):
             return new_obj.get(self.obj.parent.id)
         return None
 
-    def get_children(self, id_: Optional[str] = None, limit: int = 0):
+    def get_block_children(self, id_: Optional[str] = None, limit: int = 0):
         if self.name != "blocks":
             return None
         if isinstance(id_, str) and "-" in id_:
@@ -78,7 +78,7 @@ class Element(object):
             return None
         return Element(api=self.api, name="blocks", obj=BlockArray(child["results"]))
 
-    def get_children_recursive(
+    def get_block_children_recursive(
         self, id_: Optional[str] = None, max_depth: int = 10, cur_depth: int = 0, limit: int = 0, force: bool = False
     ):
         """
@@ -106,7 +106,7 @@ class Element(object):
             if block_obj.type == "child_page" and not force:
                 continue
             if block_obj.has_children and cur_depth < max_depth:
-                sub_element = Element(api=self.api, name="blocks").get_children_recursive(
+                sub_element = Element(api=self.api, name="blocks").get_block_children_recursive(
                     id_=block_obj.id, max_depth=max_depth, cur_depth=cur_depth+1, limit=limit
                 )
                 ba.extend(sub_element.obj)
@@ -153,7 +153,7 @@ class Element(object):
         :param value: the value of this property to filter by (may be bool or datetime etc.)
         :param property_type: mandatory field - `text`, `number`, `checkbox`, `date`, `select` etc.
         :param condition: optional field - it depends on the type: `starts_with`, `contains`, `equals` etc.
-        :param raw: correctly formatted dict to pass to API (instead all other params)
+        :param raw: correctly formatted dict to pass direct to API (instead all other params)
         :param property_obj: Property or PropertyValue obj. instead of `property_name` and `property_type`,
                              PropertyValue can put value in request, if `value` is not provided
 
@@ -179,6 +179,7 @@ class Element(object):
             return self.db_query(filter_=filter_obj, sorts=sort, **kwargs)
         return None
 
+    # todo: convert `title` to str
     def db_create(
             self, database_obj: Optional[Database] = None, parent: Optional[LinkTo] = None,
             properties: Optional[Dict[str, Property]] = None, title: Optional[RichTextArray] = None
@@ -201,6 +202,7 @@ class Element(object):
         self.obj = Database(**created_db)
         return self
 
+    # todo: convert `title` to str
     def db_update(
             self, id_: Optional[str] = None,
             title: Optional[RichTextArray] = None, properties: Optional[Dict[str, Property]] = None
@@ -216,7 +218,7 @@ class Element(object):
         `rename_retype_prop = Property.create(type_="multi_select", name="multiselected")`
         `retype_prop = Property.create("checkbox")`
         `props = {"Property1_name": rename_retype_prop, "Property2_ID": retype_prop}`
-        `db = db.db_update(properties=props)`
+        `db = db.db_update(properties=props, title=RichTextArray.create("NEW DB"))`
         """
         if self.name != "databases":
             return None
