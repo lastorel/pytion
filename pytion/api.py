@@ -242,11 +242,11 @@ class Element(object):
             properties: Optional[Dict[str, PropertyValue]] = None, title: Optional[Union[str, RichTextArray]] = None
     ):
         """
-        :param page_obj:  you can provide `Database` object or -
+        :param page_obj:      you can provide `Database` object or -
                               provide the params for creating it:
-        :param parent:
-        :param properties:
-        :param title:
+        :param parent:        LinkTo object with ID of parent element
+        :param properties:    Dict of properties with values
+        :param title:         New title
         :return:
 
         `parent = LinkTo.create(database_id="24512345125123421")`
