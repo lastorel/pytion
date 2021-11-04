@@ -179,10 +179,9 @@ class Element(object):
             return self.db_query(filter_=filter_obj, sorts=sort, **kwargs)
         return None
 
-    # todo: convert `title` to str
     def db_create(
             self, database_obj: Optional[Database] = None, parent: Optional[LinkTo] = None,
-            properties: Optional[Dict[str, Property]] = None, title: Optional[RichTextArray] = None
+            properties: Optional[Dict[str, Property]] = None, title: Optional[Union[str, RichTextArray]] = None
     ):
         """
         :param database_obj:  you can provide `Database` object or -
@@ -197,15 +196,16 @@ class Element(object):
         if database_obj:
             db = database_obj
         else:
+            if isinstance(title, str):
+                title = RichTextArray.create(title)
             db = Database.create(parent=parent, properties=properties, title=title)
         created_db = Request(self.api.session, method="post", path=self.name, data=db.get()).result
         self.obj = Database(**created_db)
         return self
 
-    # todo: convert `title` to str
     def db_update(
-            self, id_: Optional[str] = None,
-            title: Optional[RichTextArray] = None, properties: Optional[Dict[str, Property]] = None
+            self, id_: Optional[str] = None, title: Optional[Union[str, RichTextArray]] = None,
+            properties: Optional[Dict[str, Property]] = None
     ):
         """
         :param id_:         provide id of database if `self.obj` is empty
@@ -228,6 +228,8 @@ class Element(object):
             id_ = self.obj.id
         patch = {}
         if title:
+            if isinstance(title, str):
+                title = RichTextArray.create(title)
             patch["title"] = title.get()
         if properties:
             patch["properties"] = {name: value.get() for name, value in properties.items()}
