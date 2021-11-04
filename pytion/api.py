@@ -270,6 +270,35 @@ class Element(object):
         self.obj = Page(**created_page)
         return self
 
+    def page_update(
+            self, id_: Optional[str] = None, properties: Optional[Dict[str, PropertyValue]] = None,
+            title: Optional[Union[str, RichTextArray]] = None, archived: bool = False
+    ):
+        """
+        :param id_:         ID of page
+        :param properties:  dict of existing properties
+        :param title:
+        :param archived:    set `True` to delete the page
+        :return:
+        """
+        if self.name != "pages":
+            return None
+        if isinstance(id_, str) and "-" in id_:
+            id_ = id_.replace("-", "")
+        if self.obj:
+            id_ = self.obj.id
+        patch = {}
+        if properties:
+            patch["properties"] = {name: p.get() for name, p in properties.items()}
+        if title:
+            patch.setdefault("properties", {})
+            patch["properties"]["title"] = PropertyValue.create("title", title).get()
+        # if archived:
+        patch["archived"] = archived
+        updated_page = Request(self.api.session, method="patch", path=self.name, id_=id_, data=patch).result
+        self.obj = Page(**updated_page)
+        return self
+
     def __repr__(self):
         if not self.obj:
             return f"Notion/{self.name}/"

@@ -205,6 +205,9 @@ class Request:
             data.update({"page_size": limit})
         if after_path:
             url += "/" + after_path
+        print("METHOD:", method.upper())
+        print("URL:", url)
+        print("DATA:", data)
         result = self.session.request(method=method, url=url, headers=self.headers, json=data)
         if not result.ok:
             raise RequestError(result)
@@ -221,7 +224,7 @@ class Request:
             next_start = result.get("next_cursor")
 
             # if GET method then parameters are in request string
-            # if POST method then parameter are in body string
+            # if POST method then parameters are in body string
             if method == "get":
                 if after_path:
                     after_path += "?" + urlencode({"start_cursor": next_start})

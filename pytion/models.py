@@ -17,13 +17,16 @@ class RichText(object):
         self.data: Dict = kwargs[self.type]
 
     def __str__(self):
-        return self.plain_text
+        return str(self.plain_text)
 
     def __repr__(self):
         return f"RichText({self.plain_text})"
 
-    def __len__(self):
-        return len(self.plain_text)
+    def __bool__(self):
+        return bool(self.plain_text)
+
+    # def __len__(self):
+    #     return len(self.plain_text)
 
     def get(self) -> Dict[str, Any]:
         """
@@ -56,6 +59,9 @@ class RichTextArray(MutableSequence):
 
     def __repr__(self):
         return f"RichTextArray({str(self)})"
+
+    def __bool__(self):
+        return any(map(bool, self.array))
 
     def get(self) -> List[Dict[str, Any]]:
         return [item.get() for item in self]
