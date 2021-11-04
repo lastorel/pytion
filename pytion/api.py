@@ -31,7 +31,7 @@ class Notion(object):
         return self.__repr__()
 
     def __getattr__(self, name):
-        print(f"Getting {name}")
+        # print(f"Getting {name}")
         return Element(self, name)
 
 
@@ -235,6 +235,39 @@ class Element(object):
             patch["properties"] = {name: value.get() for name, value in properties.items()}
         updated_db = Request(self.api.session, method="patch", path=self.name, id_=id_, data=patch).result
         self.obj = Database(**updated_db)
+        return self
+
+    def page_create(
+            self, page_obj: Optional[Page] = None, parent: Optional[LinkTo] = None,
+            properties: Optional[Dict[str, PropertyValue]] = None, title: Optional[Union[str, RichTextArray]] = None
+    ):
+        """
+        :param page_obj:  you can provide `Database` object or -
+                              provide the params for creating it:
+        :param parent:
+        :param properties:
+        :param title:
+        :return:
+
+        `parent = LinkTo.create(database_id="24512345125123421")`
+        `p2 = PropertyValue.create("date", datetime.now())`
+        `r = no.pages.page_create(parent=parent, properties={"Count": p1, "Date": p2}, title="Всем привет")`
+
+        `props["Status"] = PropertyValue.create("select", "new select option")`
+        `props["Tags"] = PropertyValue.create("multi_select", ["new-option1", "new option2"])`
+        `no.pages.create(parent=parent, properties=props)`
+
+        `parent2 = LinkTo.create(page_id="64c6ab5c4b6a546b51ac684200b4f")`
+        `no.pages.page_create(parent=parent2, title="New page 121")`
+        """
+        if self.name != "pages":
+            return None
+        if page_obj:
+            page = page_obj
+        else:
+            page = Page.create(parent=parent, properties=properties, title=title)
+        created_page = Request(self.api.session, method="post", path=self.name, data=page.get()).result
+        self.obj = Page(**created_page)
         return self
 
     def __repr__(self):

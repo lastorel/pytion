@@ -132,29 +132,37 @@ class PropertyValue(Property):
         self.name = name
         # self.raw_value = data.get(self.type)
 
-        if self.type == "title":
-            self.value = RichTextArray(data["title"])
-
-        if self.type == "rich_text":
-            self.value = RichTextArray(data["rich_text"])
+        if self.type in ["title", "rich_text"]:
+            if isinstance(data[self.type], list):
+                self.value = RichTextArray(data[self.type])
+            elif isinstance(data[self.type], RichTextArray):
+                self.value = data[self.type]
+            else:
+                self.value = RichTextArray.create(data[self.type])
 
         if self.type == "number":
             self.value: Optional[int, float] = data["number"]
 
         if self.type == "select":
-            if data["select"]:
+            if data["select"] and isinstance(data["select"], dict):
                 self.value: Optional[str] = data["select"].get("name")
+            elif data["select"] and isinstance(data["select"], str):
+                self.value = data["select"]
             else:
                 self.value = None
 
         if self.type == "multi_select":
-            self.value: List[str] = [v.get("name") for v in data["multi_select"]]
+            self.value: List[str] = [(v.get("name") if isinstance(v, dict) else v) for v in data["multi_select"]]
 
         if self.type == "checkbox":
             self.value: bool = data["checkbox"]
 
         if self.type == "date":
-            if data["date"]:
+            if isinstance(data["date"], datetime):
+                self.value = data["date"].isoformat()
+                self.start = data["date"]
+                self.end = None
+            elif data["date"]:
                 self.value: Optional[str] = data["date"].get("start")
                 self.start: Optional[datetime] = Model.format_iso_time(data["date"].get("start"))
                 self.end: Optional[datetime] = Model.format_iso_time(data["date"].get("end"))
@@ -206,9 +214,14 @@ class PropertyValue(Property):
                 self.value: Optional[int, float] = data["rollup"]["number"]
 
             if rollup_type == "date":
-                self.value: Optional[str] = data["rollup"]["date"].get("start")
-                self.start: Optional[datetime] = Model.format_iso_time(data["rollup"]["date"].get("start"))
-                self.end: Optional[datetime] = Model.format_iso_time(data["rollup"]["date"].get("end"))
+                if data["rollup"]["date"]:
+                    self.value: Optional[str] = data["rollup"]["date"].get("start")
+                    self.start: Optional[datetime] = Model.format_iso_time(data["rollup"]["date"].get("start"))
+                    self.end: Optional[datetime] = Model.format_iso_time(data["rollup"]["date"].get("end"))
+                else:
+                    self.value = None
+                    self.start = None
+                    self.end = None
 
         if self.type == "files":
             self.value = "unsupported"
@@ -227,6 +240,65 @@ class PropertyValue(Property):
 
     def __repr__(self):
         return f"{self.name}({self})"
+
+    def get(self):
+        # checkbox can not be `None`
+        if self.type in ["checkbox"]:
+            return {self.type: self.value}
+
+        # empty values
+        if not self.value:
+            if self.type in ["multi_select", "relation", "rich_text", "people", "files"]:
+                return {self.type: []}
+            return {self.type: None}
+
+        # RichTextArray
+        if self.type in ["title", "rich_text"] and hasattr(self.value, "get"):
+            return {self.type: self.value.get()}
+
+        # simple values
+        if self.type in ["number", "url", "email", "phone_number"]:
+            return {self.type: self.value}
+
+        # select type
+        if self.type == "select":
+            return {self.type: {"name": self.value}}
+
+        # multi-select type
+        if self.type == "multi_select":
+            return {self.type: [{"name": tag} for tag in self.value]}
+
+        # date type
+        if self.type == "date" and hasattr(self, "start") and hasattr(self, "end"):
+            with_time = True if self.start.hour or self.start.minute else False
+            if self.start:
+                start = self.start.isoformat() if with_time else str(self.start.date())
+            else:
+                start = None
+            if self.end:
+                end = self.end.isoformat() if with_time else str(self.end.date())
+            else:
+                end = None
+            return {self.type: {"start": start, "end": end}}
+
+        # unsupported types:
+        if self.type in ["files", "relation", "people"]:
+            return {self.type: []}
+        if self.type in ["created_time", "last_edited_by", "last_edited_time", "created_by"]:
+            return None
+        if self.type in ["formula", "rollup"]:
+            return {self.type: {}}
+
+    @classmethod
+    def create(cls, type_: str = "", value: Any = None, **kwargs):
+        """
+        Property Value Object (watch docs)
+
+        + addons:
+        set type = `None` to delete this Property
+        set param `name` to rename this Property
+        """
+        return cls({"type": type_, type_: value, **kwargs}, name="")
 
 
 class Database(Model):
@@ -296,11 +368,13 @@ class Page(Model):
         super().__init__(**kwargs)
         self.cover: Optional[Dict] = kwargs.get("cover")
         self.icon: Optional[Dict] = kwargs.get("icon")
-        self._parent: Dict[str, str] = kwargs.get("parent")
-        self.parent = LinkTo(**self._parent)
+        self.parent = kwargs["parent"] if isinstance(kwargs.get("parent"), LinkTo) else LinkTo(**kwargs["parent"])
         self.archived: bool = kwargs.get("archived")
         self.url: str = kwargs.get("url")
-        self.properties = {name: PropertyValue(data, name) for name, data in kwargs["properties"].items()}
+        self.properties = {
+            name: (PropertyValue(data, name) if not isinstance(data, PropertyValue) else data)
+            for name, data in kwargs["properties"].items()
+        }
         for p in self.properties.values():
             if "title" in p.type:
                 self.title = p.value
@@ -313,6 +387,25 @@ class Page(Model):
 
     def __repr__(self):
         return f"Page({self.title})"
+
+    def get(self):
+        return {
+            "parent": self.parent.get(without_type=True),
+            "icon": self.icon,  # optional
+            "cover": self.cover,  # optional
+            "properties": {name: p.get() for name, p in self.properties.items()},
+            # todo children
+        }
+
+    @classmethod
+    def create(
+            cls, parent: LinkTo, properties: Dict[str, PropertyValue], title: Optional[RichTextArray] = None, **kwargs
+    ):
+        if title:
+            if not properties:
+                properties = {}
+            properties["title"] = PropertyValue.create("title", title)
+        return cls(parent=parent, properties=properties, **kwargs)
 
 
 class Block(Model):
@@ -477,5 +570,16 @@ class LinkTo(object):
         if isinstance(self.id, str):
             self.id = self.id.replace("-", "")
 
-    def get(self):
+    def get(self, without_type: bool = False):
+        if without_type:
+            return {self.type: self.id}
         return {"type": self.type, self.type: self.id}
+
+    @classmethod
+    def create(cls, **kwargs):
+        """
+        `.create(page_id="123412341234")`
+        `.create(database_id="13412341234")`
+        """
+        for key, value in kwargs.items():
+            return cls(type=key, id=value)
