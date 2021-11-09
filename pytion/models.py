@@ -358,8 +358,6 @@ class Database(Model):
 class Page(Model):
     object = "page"
     path = "pages"
-    # todo: create
-    # todo: get api like
 
     def __init__(self, **kwargs) -> None:
         """
@@ -495,6 +493,21 @@ class Block(Model):
 
     def __repr__(self):
         return f"Block({str(self.text)[:30]})"
+
+    def get(self):
+        if self.type in [
+            "paragraph", "quote", "heading_1", "heading_2", "heading_3", "to_do",
+            "bulleted_list_item", "numbered_list_item", "toggle", "callout", "code"
+        ]:
+
+            text = RichTextArray.create(self.text) if isinstance(self.text, str) else self.text
+            new_dict = {self.type: {"text": text.get()}}
+            if self.type == "to_do" and hasattr(self, "checked"):
+                new_dict[self.type]["checked"] = self.checked
+            if self.type == "code":
+                new_dict[self.type]["language"] = getattr(self, "language", "plain text")
+            return new_dict
+        return None
 
 
 class ElementArray(MutableSequence):

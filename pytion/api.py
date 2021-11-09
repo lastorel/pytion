@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+from __future__ import annotations
 from typing import Optional, Union, Dict
 
 import requests
@@ -44,10 +44,17 @@ class Element(object):
         self.name = name
         self.obj = obj
 
-    def get(self, id_: str):
+    def get(self, id_: str) -> Element:
         """
         Get Element by ID.
         .query.RequestError exception if not found
+
+        :return:    `Element.obj` may be `Page`, `Database`, `Block`
+
+        result = no.databases.get("1234123412341")
+        result = no.pages.get("123412341234")
+        result = no.blocks.get("123412341234")
+        print(result.obj)
         """
         if "-" in id_:
             id_ = id_.replace("-", "")
@@ -55,7 +62,20 @@ class Element(object):
         self.obj = self.class_map[raw_obj["object"]](**raw_obj)
         return self
 
-    def get_parent(self, id_: Optional[str] = None):
+    def get_parent(self, id_: Optional[str] = None) -> Optional[Element]:
+        """
+        Get parent object of current object if possible.
+
+        :param id_:
+        :return:    Element (parent object) or None. `.obj` may be `Page`, `Database`, `Block`
+
+        `result = no.blocks.get_parent("123412341234")`
+        `print(result)`
+        Notion/pages/Page(Page Title here)
+        `result = result.get_parent()`
+        `print(result)`
+        Notion/databases/Database(Some database name)
+        """
         if not self.obj:
             self.get(id_)
         if getattr(self.obj, "parent"):
@@ -63,7 +83,25 @@ class Element(object):
             return new_obj.get(self.obj.parent.id)
         return None
 
-    def get_block_children(self, id_: Optional[str] = None, limit: int = 0):
+    def get_block_children(self, id_: Optional[str] = None, limit: int = 0) -> Optional[Element]:
+        """
+        Get children Block objects of current Block object (tabulated texts) if exist (else None)
+
+        :param id_:
+        :param limit:   0 < int < 100 - max number of items to be returned (0 = return all)
+        :return:        `Element.obj` will be BlockArray object even nothing is found
+
+        `print(no.pages.get_block_children("PAGE ID"))`
+        None
+
+        `print(no.blocks.get_block_children("PAGE ID"))`
+        Notion/blocks/BlockArray(Heading 2 level Paragraph some)
+
+        `print(no.blocks.get_block_children("PAGE ID").obj)`
+        Heading 2 level
+        Paragraph
+        some text
+        """
         if self.name != "blocks":
             return None
         if isinstance(id_, str) and "-" in id_:
@@ -79,15 +117,22 @@ class Element(object):
         return Element(api=self.api, name="blocks", obj=BlockArray(child["results"]))
 
     def get_block_children_recursive(
-        self, id_: Optional[str] = None, max_depth: int = 10, cur_depth: int = 0, limit: int = 0, force: bool = False
+        self, id_: Optional[str] = None, max_depth: int = 10, _cur_depth: int = 0, limit: int = 0, force: bool = False
     ):
         """
+        Get children Block objects of current Block object (tabulated texts) if exist (else None) recursive
+
         :param id_:
-        :param max_depth:
-        :param cur_depth:
-        :param limit:
-        :param force: get blocks in subpages too
-        :return:
+        :param max_depth:   how deep use the recursion (block inside block inside block etc.)
+        :param limit:       0 < int < 100 - max number of items to be returned (0 = return all)
+        :param force:       get blocks in subpages too
+        :return:            `Element.obj` will be BlockArray object even nothing is found
+
+        `print(no.blocks.get_block_children_recursive("PAGE ID").obj)`
+        Heading 2 level
+        Paragraph
+            block inside block
+        some text
         """
         if self.name != "blocks":
             return None
@@ -100,20 +145,34 @@ class Element(object):
         ).result
         ba = BlockArray([])
         for b in child["results"]:
-            block_obj = Block(level=cur_depth, **b)
+            block_obj = Block(level=_cur_depth, **b)
             ba.append(block_obj)
             # Do not get subpages if not force
             if block_obj.type == "child_page" and not force:
                 continue
-            if block_obj.has_children and cur_depth < max_depth:
+            if block_obj.has_children and _cur_depth < max_depth:
                 sub_element = Element(api=self.api, name="blocks").get_block_children_recursive(
-                    id_=block_obj.id, max_depth=max_depth, cur_depth=cur_depth+1, limit=limit
+                    id_=block_obj.id, max_depth=max_depth, _cur_depth=_cur_depth + 1, limit=limit
                 )
                 ba.extend(sub_element.obj)
 
         return Element(api=self.api, name="blocks", obj=ba)
 
     def get_page_property(self, property_id: str, id_: Optional[str] = None, limit: int = 0):
+        """
+        Retrieve a page property item.
+
+        :param property_id: ID of property in current database
+        :param id_:         ID of page in that database (if not `self.obj`)
+        :param limit:       0 < int < 100 - max number of items to be returned (0 = return all)
+        :return:            `Element.obj` will be PropertyValue object
+
+        `db = no.databases.get("bc339ec71988466c95c083359e239a7c")`
+        `property_id = db.obj.properties["Last edited time"].id`
+        `result = no.pages.get_page_property(property_id, 'f658c02ba00640629524c679cc1b1544')`
+        `print(result.obj)`
+        2021-11-04 16:47:00+00:00
+        """
         if self.name != "pages":
             return None
         if isinstance(id_, str) and "-" in id_:
@@ -190,6 +249,12 @@ class Element(object):
         :param properties:
         :param title:
         :return:
+
+        `parent = LinkTo.create(database_id="24512345125123421")`
+        `p1 = Property.create(name="renamed")`
+        `p2 = Property.create(type_="multi_select", name="multiselected")`
+        `props = {"Property1_name": p1, "Property2_ID": p2}`
+        `db = db.db_create(parent=parent, properties=props, title=RichTextArray.create("NEW DB"))`
         """
         if self.name != "databases":
             return None
@@ -279,7 +344,7 @@ class Element(object):
         :param properties:  dict of existing properties
         :param title:
         :param archived:    set `True` to delete the page
-        :return:
+        :return:            self
         """
         if self.name != "pages":
             return None
@@ -297,6 +362,49 @@ class Element(object):
         patch["archived"] = archived
         updated_page = Request(self.api.session, method="patch", path=self.name, id_=id_, data=patch).result
         self.obj = Page(**updated_page)
+        return self
+
+    def block_update(
+            self, id_: Optional[str] = None, block_obj: Optional[Block] = None,
+            new_text: Optional[str] = None, archived: bool = False
+    ):
+        """
+        Updates text of Block.
+        `text`, `checked` (`to_do` type), `language` (`code` type) fields support only!
+        You can modify any attrs of existing block and provide it (Block object) to this func.
+
+        :param id_:         ID of block to change text OR
+        :param block_obj:   modified Block
+
+        :param new_text:    new text
+        :param archived:    flag to delete that Block
+        :return:            self
+
+        `blocks = no.blocks.get_block_children("9796f25250164581234123436b555")`
+        `for b in blocks.obj:`
+            `no.blocks.block_update(block_obj=b, new_text="OH YEEEAHH")`
+        `for b in blocks.obj:`
+            `b.text = "ALL IS DONE"`
+            `no.blocks.block_update(block_obj=b)`
+        """
+        if self.name != "blocks":
+            return None
+        if isinstance(id_, str) and "-" in id_:
+            id_ = id_.replace("-", "")
+        if block_obj:
+            self.obj = block_obj
+        if self.obj:
+            id_ = self.obj.id
+        else:
+            self.get(id_)
+        if not self.obj.get():
+            return None
+        if new_text:
+            self.obj.text = new_text
+        patch = {"archived": archived}
+        patch.update(self.obj.get())
+        updated_block = Request(self.api.session, method="patch", path=self.name, id_=id_, data=patch).result
+        self.obj = Block(**updated_block)
         return self
 
     def __repr__(self):
