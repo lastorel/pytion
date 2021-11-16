@@ -157,7 +157,7 @@ class Sort(object):
         return f"Sorts({r})"
 
 
-class Request:
+class Request(object):
     def __init__(
             self,
             session: requests.Session,

@@ -429,7 +429,16 @@ class Block(Model):
         self.archived: bool = kwargs.get("archived")
         self.children = LinkTo(block=self)
         self._level = kwargs["level"] if kwargs.get("level") else 0
+        self.create_mode: bool = kwargs["create_mode"] if "create_mode" in kwargs else False
         self.parent = None
+
+        if self.create_mode:
+            self.text = kwargs[self.type]
+            if "checked" in kwargs:
+                self.checked = kwargs["checked"]
+            if "language" in kwargs:
+                self.language = kwargs["language"]
+            return
 
         if self.type == "paragraph":
             self.text = RichTextArray(kwargs[self.type].get("text"))
@@ -494,7 +503,7 @@ class Block(Model):
     def __repr__(self):
         return f"Block({str(self.text)[:30]})"
 
-    def get(self):
+    def get(self, with_object_type: bool = False):
         if self.type in [
             "paragraph", "quote", "heading_1", "heading_2", "heading_3", "to_do",
             "bulleted_list_item", "numbered_list_item", "toggle", "callout", "code"
@@ -506,14 +515,35 @@ class Block(Model):
                 new_dict[self.type]["checked"] = self.checked
             if self.type == "code":
                 new_dict[self.type]["language"] = getattr(self, "language", "plain text")
+            if with_object_type:
+                new_dict["object"] = "block"
+                new_dict["type"] = self.type
             return new_dict
         return None
+
+    @classmethod
+    def create(cls, text: str, type_: str = "paragraph", **kwargs):
+        """
+        :param text:   Block content
+        :param type_:  Block types (API)
+        :param kwargs: `checked` for To-Do and `language` for Code supported
+        :return:
+        """
+        new_dict = {
+            "type": type_,
+            type_: text,
+        }
+        return cls(**new_dict, create_mode=True, **kwargs)
 
 
 class ElementArray(MutableSequence):
     class_map = {"page": Page, "database": Database, "block": Block}
 
-    def __init__(self, array):
+    def __init__(self, array, create: bool = False):
+        if create:
+            self.array = array
+            return
+
         self.array = []
         for ele in array:
             if ele.get("object") and ele["object"] in self.class_map:
@@ -549,6 +579,9 @@ class BlockArray(ElementArray):
     def __repr__(self):
         r = str(self)[:30].replace("\n", " ")
         return f"BlockArray({r})"
+
+    def get(self):
+        return [b.get() for b in self]
 
 
 class PageArray(ElementArray):

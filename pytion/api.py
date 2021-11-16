@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
-from typing import Optional, Union, Dict
+from typing import Optional, Union, Dict, List
 
 import requests
 
+import pytion.envs as envs
 from pytion.query import Request, Filter, Sort
 from pytion.models import Database, Page, Block, BlockArray, PropertyValue, PageArray, LinkTo, RichTextArray, Property
 
@@ -14,6 +15,7 @@ Models = Union[Database, Page, Block, BlockArray, PropertyValue, PageArray]
 class Notion(object):
     def __init__(self):
         self.session = requests.Session()
+        self.version = envs.NOTION_VERSION
 
     def __len__(self):
         return 1
@@ -118,7 +120,7 @@ class Element(object):
 
     def get_block_children_recursive(
         self, id_: Optional[str] = None, max_depth: int = 10, _cur_depth: int = 0, limit: int = 0, force: bool = False
-    ):
+    ) -> Optional[Element]:
         """
         Get children Block objects of current Block object (tabulated texts) if exist (else None) recursive
 
@@ -158,7 +160,7 @@ class Element(object):
 
         return Element(api=self.api, name="blocks", obj=ba)
 
-    def get_page_property(self, property_id: str, id_: Optional[str] = None, limit: int = 0):
+    def get_page_property(self, property_id: str, id_: Optional[str] = None, limit: int = 0) -> Optional[Element]:
         """
         Retrieve a page property item.
 
@@ -167,9 +169,9 @@ class Element(object):
         :param limit:       0 < int < 100 - max number of items to be returned (0 = return all)
         :return:            `Element.obj` will be PropertyValue object
 
-        `db = no.databases.get("bc339ec71988466c95c083359e239a7c")`
+        `db = no.databases.get("1232412341234")`
         `property_id = db.obj.properties["Last edited time"].id`
-        `result = no.pages.get_page_property(property_id, 'f658c02ba00640629524c679cc1b1544')`
+        `result = no.pages.get_page_property(property_id, 'PAGE ID 152f123a12344')`
         `print(result.obj)`
         2021-11-04 16:47:00+00:00
         """
@@ -191,7 +193,7 @@ class Element(object):
             filter_: Optional[Filter] = None,
             sorts: Optional[Sort] = None,
             **kwargs,
-    ):
+    ) -> Optional[Element]:
         if self.name != "databases":
             return None
         if isinstance(id_, str) and "-" in id_:
@@ -206,7 +208,7 @@ class Element(object):
             return None
         return Element(api=self.api, name="pages", obj=PageArray(r["results"]))
 
-    def db_filter(self, **kwargs):
+    def db_filter(self, **kwargs) -> Optional[Element]:
         """
         :param property_name: mandatory - full name or ID of property to filter by
         :param value: the value of this property to filter by (may be bool or datetime etc.)
@@ -220,6 +222,7 @@ class Element(object):
         :param descending: property name to be sorted by
 
         :param limit: 0 < int < 100 - max number of items to be returned (0 = return all)
+        :return:              self.obj -> PageArray
 
         examples
         `.db_filter(property_name="Done", property_type="checkbox", value=False, descending="title")`
@@ -241,19 +244,19 @@ class Element(object):
     def db_create(
             self, database_obj: Optional[Database] = None, parent: Optional[LinkTo] = None,
             properties: Optional[Dict[str, Property]] = None, title: Optional[Union[str, RichTextArray]] = None
-    ):
+    ) -> Optional[Element]:
         """
         :param database_obj:  you can provide `Database` object or -
                               provide the params for creating it:
         :param parent:
         :param properties:
         :param title:
-        :return:
+        :return:              self.obj -> Database
 
         `parent = LinkTo.create(database_id="24512345125123421")`
         `p1 = Property.create(name="renamed")`
         `p2 = Property.create(type_="multi_select", name="multiselected")`
-        `props = {"Property1_name": p1, "Property2_ID": p2}`
+        `props = {"Property1_name": p1, "Property2_name": p2}`
         `db = db.db_create(parent=parent, properties=props, title=RichTextArray.create("NEW DB"))`
         """
         if self.name != "databases":
@@ -271,12 +274,12 @@ class Element(object):
     def db_update(
             self, id_: Optional[str] = None, title: Optional[Union[str, RichTextArray]] = None,
             properties: Optional[Dict[str, Property]] = None
-    ):
+    ) -> Optional[Element]:
         """
         :param id_:         provide id of database if `self.obj` is empty
         :param title:       provide RichTextArray text to rename database
         :param properties:  provide dict of Property to update them
-        :return:  self
+        :return:            self.obj -> Database
 
 
         `rename_prop = Property.create(name="renamed")`
@@ -305,24 +308,24 @@ class Element(object):
     def page_create(
             self, page_obj: Optional[Page] = None, parent: Optional[LinkTo] = None,
             properties: Optional[Dict[str, PropertyValue]] = None, title: Optional[Union[str, RichTextArray]] = None
-    ):
+    ) -> Optional[Element]:
         """
         :param page_obj:      you can provide `Database` object or -
                               provide the params for creating it:
         :param parent:        LinkTo object with ID of parent element
         :param properties:    Dict of properties with values
         :param title:         New title
-        :return:
+        :return:              self.obj -> Page
 
         `parent = LinkTo.create(database_id="24512345125123421")`
         `p2 = PropertyValue.create("date", datetime.now())`
-        `r = no.pages.page_create(parent=parent, properties={"Count": p1, "Date": p2}, title="Всем привет")`
+        `r = no.pages.page_create(parent=parent, properties={"Count": p1, "Date": p2}, title="Extra PAGE")`
 
         `props["Status"] = PropertyValue.create("select", "new select option")`
         `props["Tags"] = PropertyValue.create("multi_select", ["new-option1", "new option2"])`
         `no.pages.create(parent=parent, properties=props)`
 
-        `parent2 = LinkTo.create(page_id="64c6ab5c4b6a546b51ac684200b4f")`
+        `parent2 = LinkTo.create(page_id="123412341234")`
         `no.pages.page_create(parent=parent2, title="New page 121")`
         """
         if self.name != "pages":
@@ -338,13 +341,13 @@ class Element(object):
     def page_update(
             self, id_: Optional[str] = None, properties: Optional[Dict[str, PropertyValue]] = None,
             title: Optional[Union[str, RichTextArray]] = None, archived: bool = False
-    ):
+    ) -> Optional[Element]:
         """
         :param id_:         ID of page
         :param properties:  dict of existing properties
         :param title:
         :param archived:    set `True` to delete the page
-        :return:            self
+        :return:            self.obj -> Page
         """
         if self.name != "pages":
             return None
@@ -367,20 +370,20 @@ class Element(object):
     def block_update(
             self, id_: Optional[str] = None, block_obj: Optional[Block] = None,
             new_text: Optional[str] = None, archived: bool = False
-    ):
+    ) -> Optional[Element]:
         """
         Updates text of Block.
         `text`, `checked` (`to_do` type), `language` (`code` type) fields support only!
         You can modify any attrs of existing block and provide it (Block object) to this func.
 
         :param id_:         ID of block to change text OR
-        :param block_obj:   modified Block
+        :param block_obj:   modified Block (replace mode only)
 
-        :param new_text:    new text
+        :param new_text:    new text (replace mode only)
         :param archived:    flag to delete that Block
-        :return:            self
+        :return:            self.obj -> Block
 
-        `blocks = no.blocks.get_block_children("9796f25250164581234123436b555")`
+        `blocks = no.blocks.get_block_children("PAGE ID")`
         `for b in blocks.obj:`
             `no.blocks.block_update(block_obj=b, new_text="OH YEEEAHH")`
         `for b in blocks.obj:`
@@ -406,6 +409,42 @@ class Element(object):
         updated_block = Request(self.api.session, method="patch", path=self.name, id_=id_, data=patch).result
         self.obj = Block(**updated_block)
         return self
+
+    def block_append(
+            self, id_: Optional[str] = None, block: Optional[Block] = None,
+            blocks: Optional[BlockArray, List[Block]] = None
+    ) -> Optional[Element]:
+        """
+        Append block or blocks children
+
+        :param id_:         provide id of block or page if `self.obj` is empty
+
+        :param block:       Block to append OR
+        :param blocks:          List[Block] or BlockArray to append
+
+        :return:            self.obj -> BlockArray
+
+        `p1 = no.pages.get("PAGE ID")`
+        `p1.block_append(block=Block.create("SOMETHING NEW YO"))`
+
+        `no.blocks.block_append("BLOCK OR PAGE ID", blocks=blocks)`
+        """
+        if self.name not in ["blocks", "pages"]:
+            return None
+        if isinstance(id_, str) and "-" in id_:
+            id_ = id_.replace("-", "")
+        if self.obj:
+            id_ = self.obj.id
+        if isinstance(blocks, list):
+            blocks = BlockArray(blocks, create=True)
+        if isinstance(block, Block):
+            blocks = BlockArray([block], create=True)
+        data = {"children": blocks.get()}
+
+        new_blocks = Request(
+            self.api.session, method="patch", path="blocks", id_=id_, after_path="children", data=data
+        ).result
+        return Element(api=self.api, name="blocks", obj=BlockArray(new_blocks["results"]))
 
     def __repr__(self):
         if not self.obj:
