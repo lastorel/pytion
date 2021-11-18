@@ -306,8 +306,12 @@ class Element(object):
         return self
 
     def page_create(
-            self, page_obj: Optional[Page] = None, parent: Optional[LinkTo] = None,
-            properties: Optional[Dict[str, PropertyValue]] = None, title: Optional[Union[str, RichTextArray]] = None
+            self,
+            page_obj: Optional[Page] = None,
+            parent: Optional[LinkTo] = None,
+            properties: Optional[Dict[str, PropertyValue]] = None,
+            title: Optional[Union[str, RichTextArray]] = None,
+            children: Optional[BlockArray, List[Block]] = None,
     ) -> Optional[Element]:
         """
         :param page_obj:      you can provide `Database` object or -
@@ -315,6 +319,7 @@ class Element(object):
         :param parent:        LinkTo object with ID of parent element
         :param properties:    Dict of properties with values
         :param title:         New title
+        :param children:      Content of new page in [Block] or BlockArray format
         :return:              self.obj -> Page
 
         `parent = LinkTo.create(database_id="24512345125123421")`
@@ -333,7 +338,9 @@ class Element(object):
         if page_obj:
             page = page_obj
         else:
-            page = Page.create(parent=parent, properties=properties, title=title)
+            if children and not isinstance(children, BlockArray):
+                children = BlockArray(children, create=True)
+            page = Page.create(parent=parent, properties=properties, title=title, children=children)
         created_page = Request(self.api.session, method="post", path=self.name, data=page.get()).result
         self.obj = Page(**created_page)
         return self

@@ -375,6 +375,7 @@ class Page(Model):
         self.parent = kwargs["parent"] if isinstance(kwargs.get("parent"), LinkTo) else LinkTo(**kwargs["parent"])
         self.archived: bool = kwargs.get("archived")
         self.url: str = kwargs.get("url")
+        self.children = kwargs.get("children")
         self.properties = {
             name: (PropertyValue(data, name) if not isinstance(data, PropertyValue) else data)
             for name, data in kwargs["properties"].items()
@@ -393,23 +394,26 @@ class Page(Model):
         return f"Page({self.title})"
 
     def get(self):
-        return {
+        new_dict = {
             "parent": self.parent.get(without_type=True),
             "icon": self.icon,  # optional
             "cover": self.cover,  # optional
             "properties": {name: p.get() for name, p in self.properties.items()},
-            # todo children
         }
+        if getattr(self, "children", None):
+            new_dict["children"] = self.children.get()  # can not be None
+        return new_dict
 
     @classmethod
     def create(
-            cls, parent: LinkTo, properties: Dict[str, PropertyValue], title: Optional[RichTextArray] = None, **kwargs
+            cls, parent: LinkTo, properties: Dict[str, PropertyValue],
+            title: Optional[RichTextArray] = None, children: Optional[BlockArray] = None, **kwargs
     ):
+        if not properties:
+            properties = {}
         if title:
-            if not properties:
-                properties = {}
             properties["title"] = PropertyValue.create("title", title)
-        return cls(parent=parent, properties=properties, **kwargs)
+        return cls(parent=parent, properties=properties, children=children, **kwargs)
 
 
 class Block(Model):
