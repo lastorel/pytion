@@ -314,7 +314,7 @@ class Element(object):
             children: Optional[BlockArray, List[Block]] = None,
     ) -> Optional[Element]:
         """
-        :param page_obj:      you can provide `Database` object or -
+        :param page_obj:      you can provide `Page` object or -
                               provide the params for creating it:
         :param parent:        LinkTo object with ID of parent element
         :param properties:    Dict of properties with values
