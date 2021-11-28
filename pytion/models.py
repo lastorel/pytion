@@ -278,11 +278,11 @@ class PropertyValue(Property):
         if self.type == "date" and hasattr(self, "start") and hasattr(self, "end"):
             with_time = True if self.start.hour or self.start.minute else False
             if self.start:
-                start = self.start.isoformat() if with_time else str(self.start.date())
+                start = self.start.astimezone().isoformat() if with_time else str(self.start.date())
             else:
                 start = None
             if self.end:
-                end = self.end.isoformat() if with_time else str(self.end.date())
+                end = self.end.astimezone().isoformat() if with_time else str(self.end.date())
             else:
                 end = None
             return {self.type: {"start": start, "end": end}}
@@ -477,6 +477,7 @@ class Block(Model):
             self.text = RichTextArray(kwargs[self.type].get("text"))
             self.language: str = kwargs[self.type].get("language")
 
+        # when the block is page, parent will be the page object
         if "child" in self.type:
             self.text = kwargs[self.type].get("title")
             if self.type == "child_page":
@@ -603,12 +604,25 @@ class LinkTo(object):
     .get() - return API like style
     """
 
-    def __init__(self, block: Optional[Block] = None, **kwargs):
+    def __init__(
+            self, block: Optional[Block] = None, from_object: Optional[Block, Page, Database] = None, **kwargs
+    ):
         if block:
             self.type = block.object
             self.id = block.id
             self.after_path = "children"
             self.uri = "blocks"
+        # You can provide the object to create the LinkTo to it
+        elif from_object:
+            self.uri = from_object.path
+            self.id = from_object.id
+            if isinstance(from_object, Page):
+                self.type = "page_id"
+            elif isinstance(from_object, Database):
+                self.type = "database_id"
+            elif isinstance(from_object, Block):
+                # `block_id` does not exist in API schema yet
+                self.type = "block_id"
         else:
             self.type: str = kwargs.get("type")
             self.id: str = kwargs.get(self.type) if kwargs.get(self.type) else kwargs.get("id")
