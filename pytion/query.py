@@ -209,6 +209,8 @@ class Request(object):
         print("URL:", url)
         print("DATA:", data)
         result = self.session.request(method=method, url=url, headers=self.headers, json=data)
+        print("\nSTATUS CODE:", result.status_code)
+        print("CONTENT:", result.content)
         if not result.ok:
             raise RequestError(result)
         try:
