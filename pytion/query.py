@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import json
+import logging
 from urllib.parse import urlencode
 from typing import Dict, Optional, Any, Union
 from datetime import datetime
@@ -9,6 +10,9 @@ import requests
 
 import pytion.envs as envs
 from pytion.models import Property, PropertyValue
+
+
+logger = logging.getLogger(__name__)
 
 
 class RequestError(Exception):
@@ -205,17 +209,21 @@ class Request(object):
             data.update({"page_size": limit})
         if after_path:
             url += "/" + after_path
-        print("METHOD:", method.upper())
-        print("URL:", url)
-        print("DATA:", data)
+        logger.info(f"Request {method} {url}")
+        logger.debug(f"METHOD: {method.upper()}")
+        logger.debug(f"URL: {url}")
+        logger.debug(f"DATA: {data}")
         result = self.session.request(method=method, url=url, headers=self.headers, json=data)
-        print("\nSTATUS CODE:", result.status_code)
-        print("CONTENT:", result.content)
+        logger.debug(f"STATUS CODE: {result.status_code}")
+        logger.debug(f"CONTENT: {result.content}")
+        logger.info(f"{result.status_code} Received")
         if not result.ok:
+            logger.error(f"Result is not OK. {result.status_code}\n{result.reason}")
             raise RequestError(result)
         try:
             r = result.json()
         except json.JSONDecodeError:
+            logger.error(f"Result is not OK. JSON decoding fail\n{result.content}")
             raise ContentError(result)
         if not limit:
             self.paginate(r, method, path, id_, data, after_path)
@@ -224,9 +232,10 @@ class Request(object):
     def paginate(self, result, method, path, id_, data, after_path):
         if (result.get("has_more", False) is True) and (result.get("object", "") == "list"):
             next_start = result.get("next_cursor")
+            logger.info(f"Paginated answer. Repeat with offset {next_start}")
 
             # if GET method then parameters are in request string
-            # if POST method then parameters are in body string
+            # if POST method then parameters are in body
             if method == "get":
                 if after_path:
                     after_path += "?" + urlencode({"start_cursor": next_start})

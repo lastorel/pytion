@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
+
+import logging
 from typing import Optional, Union, Dict, List
 
 import requests
@@ -10,12 +12,14 @@ from pytion.models import Database, Page, Block, BlockArray, PropertyValue, Page
 
 
 Models = Union[Database, Page, Block, BlockArray, PropertyValue, PageArray]
+logger = logging.getLogger(__name__)
 
 
 class Notion(object):
     def __init__(self):
         self.session = requests.Session()
         self.version = envs.NOTION_VERSION
+        logger.debug(f"API object created. Version {envs.NOTION_VERSION}")
 
     def __len__(self):
         return 1
@@ -33,7 +37,6 @@ class Notion(object):
         return self.__repr__()
 
     def __getattr__(self, name):
-        # print(f"Getting {name}")
         return Element(self, name)
 
 
@@ -41,10 +44,10 @@ class Element(object):
     class_map = {"page": Page, "database": Database, "block": Block}
 
     def __init__(self, api: Notion, name: str, obj: Optional[Models] = None):
-        # print(f"Creating Element({name})")
         self.api = api
         self.name = name
         self.obj = obj
+        logger.debug(f"Element {self!r} created")
 
     def get(self, id_: str) -> Element:
         """
@@ -83,6 +86,7 @@ class Element(object):
         if getattr(self.obj, "parent"):
             new_obj = Element(api=self.api, name=self.obj.parent.uri)
             return new_obj.get(self.obj.parent.id)
+        logger.warning(f"Parent object can not be found")
         return None
 
     def get_block_children(self, id_: Optional[str] = None, limit: int = 0) -> Optional[Element]:
@@ -105,6 +109,7 @@ class Element(object):
         some text
         """
         if self.name != "blocks":
+            logger.warning("Only `blocks` can have children")
             return None
         if isinstance(id_, str) and "-" in id_:
             id_ = id_.replace("-", "")
@@ -115,6 +120,7 @@ class Element(object):
         ).result
         # children object returns list of Blocks
         if child["object"] != "list":
+            logger.warning(f"List of Blocks expected. Received\n{child}")
             return None
         return Element(api=self.api, name="blocks", obj=BlockArray(child["results"]))
 
@@ -137,6 +143,7 @@ class Element(object):
         some text
         """
         if self.name != "blocks":
+            logger.warning("Only `blocks` can have children")
             return None
         if isinstance(id_, str) and "-" in id_:
             id_ = id_.replace("-", "")
@@ -176,6 +183,7 @@ class Element(object):
         2021-11-04 16:47:00+00:00
         """
         if self.name != "pages":
+            logger.warning("Only `pages` can have properties")
             return None
         if isinstance(id_, str) and "-" in id_:
             id_ = id_.replace("-", "")
@@ -195,6 +203,7 @@ class Element(object):
             **kwargs,
     ) -> Optional[Element]:
         if self.name != "databases":
+            logger.warning("Only `databases` can be queried")
             return None
         if isinstance(id_, str) and "-" in id_:
             id_ = id_.replace("-", "")
@@ -239,6 +248,7 @@ class Element(object):
                 sort = Sort(property_name=kwargs["descending"], direction="descending")
             filter_obj = Filter(**kwargs)
             return self.db_query(filter_=filter_obj, sorts=sort, **kwargs)
+        logger.warning("Database must be provided. use .get() before")
         return None
 
     def db_create(
@@ -260,6 +270,7 @@ class Element(object):
         `db = db.db_create(parent=parent, properties=props, title=RichTextArray.create("NEW DB"))`
         """
         if self.name != "databases":
+            logger.warning("Method supports `databases` only")
             return None
         if database_obj:
             db = database_obj
@@ -289,6 +300,7 @@ class Element(object):
         `db = db.db_update(properties=props, title=RichTextArray.create("NEW DB"))`
         """
         if self.name != "databases":
+            logger.warning("Method supports `databases` only")
             return None
         if isinstance(id_, str) and "-" in id_:
             id_ = id_.replace("-", "")
@@ -334,6 +346,7 @@ class Element(object):
         `no.pages.page_create(parent=parent2, title="New page 121")`
         """
         if self.name != "pages":
+            logger.warning("Method supports `pages` only")
             return None
         if page_obj:
             page = page_obj
@@ -357,6 +370,7 @@ class Element(object):
         :return:            self.obj -> Page
         """
         if self.name != "pages":
+            logger.warning("Method supports `pages` only")
             return None
         if isinstance(id_, str) and "-" in id_:
             id_ = id_.replace("-", "")
@@ -398,6 +412,7 @@ class Element(object):
             `no.blocks.block_update(block_obj=b)`
         """
         if self.name != "blocks":
+            logger.warning("Method supports `blocks` only")
             return None
         if isinstance(id_, str) and "-" in id_:
             id_ = id_.replace("-", "")
@@ -437,6 +452,7 @@ class Element(object):
         `no.blocks.block_append("BLOCK OR PAGE ID", blocks=blocks)`
         """
         if self.name not in ["blocks", "pages"]:
+            logger.warning("Method supports `blocks` or `pages` only")
             return None
         if isinstance(id_, str) and "-" in id_:
             id_ = id_.replace("-", "")

@@ -59,3 +59,10 @@ More details and examples of this methods you can see into func descriptions.
 ### pytion.models.*
 There are user classmethods for models:
 `RichTextArray.create()`, `Property.create()`, `PropertyValue.create()`, `Database.create()`, `Page.create()`, `Block.create()`, `LinkTo.create()`
+## Logging
+Logging is muted by default. To enable to stdout and to file:
+```
+from pytion import setup_logging
+
+setup_logging(level="debug", to_console=True, filename="pytion.log")
+```
