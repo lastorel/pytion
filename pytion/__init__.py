@@ -42,5 +42,3 @@ def setup_logging(
 
 
 setup_logging(level=envs.LOGGING_BASE_LEVEL, to_console=envs.LOGGING_TO_CONSOLE, filename=envs.LOGGING_FILE)
-
-no = Notion()

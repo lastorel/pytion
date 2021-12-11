@@ -1,18 +1,29 @@
 # pytion
-Unofficial Python client for official Notion API
+Unofficial Python client for official Notion API (for internal integrations only)
+
+Supports Notion API version = **"2021-08-16"**
+
+Works with **Python 3.8+**
 
 ## Quick start
 There is no package yet. Clone repo.
 
-Put your token for Notion API into file `token` at script directory.
+Create new integration and get your Notion API Token at notion.so -> /my-integrations
+
+Invite your new integration 'manager' to your Notion workspace or particular pages.
+
+`from pytion import Notion; no = Notion(token=SOME_TOKEN)`
+
+Or put your token for Notion API into file `token` at script directory and use simple `no = Notion()`
 ```
-from pytion import no
+from pytion import Notion
+no = Notion(token=SOME_TOKEN)
 page = no.pages.get("PAGE ID")
 database = no.databases.get("Database ID")
 pages = database.db_filter(property_name="Done", property_type="checkbox", value=False, descending="title")
 ```
 ```
-In [12]: from pytion import no
+In [12]: no = Notion(token=SOME_TOKEN)
 
 In [13]: my_page = no.blocks.get("7584bc0bfb3b409cb17f957e51c9188a")
 

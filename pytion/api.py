@@ -4,8 +4,6 @@ from __future__ import annotations
 import logging
 from typing import Optional, Union, Dict, List
 
-import requests
-
 import pytion.envs as envs
 from pytion.query import Request, Filter, Sort
 from pytion.models import Database, Page, Block, BlockArray, PropertyValue, PageArray, LinkTo, RichTextArray, Property
@@ -16,9 +14,9 @@ logger = logging.getLogger(__name__)
 
 
 class Notion(object):
-    def __init__(self):
-        self.session = requests.Session()
+    def __init__(self, token: Optional[str] = None):
         self.version = envs.NOTION_VERSION
+        self.session = Request(token=token)
         logger.debug(f"API object created. Version {envs.NOTION_VERSION}")
 
     def __len__(self):
@@ -63,7 +61,7 @@ class Element(object):
         """
         if "-" in id_:
             id_ = id_.replace("-", "")
-        raw_obj = Request(self.api.session, method="get", path=self.name, id_=id_).result
+        raw_obj = self.api.session.method(method="get", path=self.name, id_=id_)
         self.obj = self.class_map[raw_obj["object"]](**raw_obj)
         return self
 
@@ -115,9 +113,9 @@ class Element(object):
             id_ = id_.replace("-", "")
         if self.obj:
             id_ = self.obj.id
-        child = Request(
-            self.api.session, method="get", path=self.name, id_=id_, after_path="children", limit=limit
-        ).result
+        child = self.api.session.method(
+            method="get", path=self.name, id_=id_, after_path="children", limit=limit
+        )
         # children object returns list of Blocks
         if child["object"] != "list":
             logger.warning(f"List of Blocks expected. Received\n{child}")
@@ -149,9 +147,9 @@ class Element(object):
             id_ = id_.replace("-", "")
         if self.obj:
             id_ = self.obj.id
-        child = Request(
-            self.api.session, method="get", path=self.name, id_=id_, after_path="children", limit=limit
-        ).result
+        child = self.api.session.method(
+            method="get", path=self.name, id_=id_, after_path="children", limit=limit
+        )
         ba = BlockArray([])
         for b in child["results"]:
             block_obj = Block(level=_cur_depth, **b)
@@ -189,9 +187,9 @@ class Element(object):
             id_ = id_.replace("-", "")
         if self.obj:
             id_ = self.obj.id
-        property_obj = Request(
-            self.api.session, method="get", path=self.name, id_=id_, after_path="properties/"+property_id, limit=limit
-        ).result
+        property_obj = self.api.session.method(
+            method="get", path=self.name, id_=id_, after_path="properties/"+property_id, limit=limit
+        )
         return Element(api=self.api, name=f"pages/{id_}/properties", obj=PropertyValue(property_obj, property_id))
 
     def db_query(
@@ -209,10 +207,10 @@ class Element(object):
             id_ = id_.replace("-", "")
         if self.obj:
             id_ = self.obj.id
-        r = Request(
-            self.api.session, method="post", path=self.name, id_=id_, after_path="query",
+        r = self.api.session.method(
+            method="post", path=self.name, id_=id_, after_path="query",
             data={}, limit=limit, filter_=filter_, sorts=sorts
-        ).result
+        )
         if r["object"] != "list":
             return None
         return Element(api=self.api, name="pages", obj=PageArray(r["results"]))
@@ -278,7 +276,7 @@ class Element(object):
             if isinstance(title, str):
                 title = RichTextArray.create(title)
             db = Database.create(parent=parent, properties=properties, title=title)
-        created_db = Request(self.api.session, method="post", path=self.name, data=db.get()).result
+        created_db = self.api.session.method(method="post", path=self.name, data=db.get())
         self.obj = Database(**created_db)
         return self
 
@@ -313,7 +311,7 @@ class Element(object):
             patch["title"] = title.get()
         if properties:
             patch["properties"] = {name: value.get() for name, value in properties.items()}
-        updated_db = Request(self.api.session, method="patch", path=self.name, id_=id_, data=patch).result
+        updated_db = self.api.session.method(method="patch", path=self.name, id_=id_, data=patch)
         self.obj = Database(**updated_db)
         return self
 
@@ -354,7 +352,7 @@ class Element(object):
             if children and not isinstance(children, BlockArray):
                 children = BlockArray(children, create=True)
             page = Page.create(parent=parent, properties=properties, title=title, children=children)
-        created_page = Request(self.api.session, method="post", path=self.name, data=page.get()).result
+        created_page = self.api.session.method(method="post", path=self.name, data=page.get())
         self.obj = Page(**created_page)
         return self
 
@@ -384,7 +382,7 @@ class Element(object):
             patch["properties"]["title"] = PropertyValue.create("title", title).get()
         # if archived:
         patch["archived"] = archived
-        updated_page = Request(self.api.session, method="patch", path=self.name, id_=id_, data=patch).result
+        updated_page = self.api.session.method(method="patch", path=self.name, id_=id_, data=patch)
         self.obj = Page(**updated_page)
         return self
 
@@ -428,7 +426,7 @@ class Element(object):
             self.obj.text = new_text
         patch = {"archived": archived}
         patch.update(self.obj.get())
-        updated_block = Request(self.api.session, method="patch", path=self.name, id_=id_, data=patch).result
+        updated_block = self.api.session.method(method="patch", path=self.name, id_=id_, data=patch)
         self.obj = Block(**updated_block)
         return self
 
@@ -464,9 +462,9 @@ class Element(object):
             blocks = BlockArray([block], create=True)
         data = {"children": blocks.get()}
 
-        new_blocks = Request(
-            self.api.session, method="patch", path="blocks", id_=id_, after_path="children", data=data
-        ).result
+        new_blocks = self.api.session.method(
+            method="patch", path="blocks", id_=id_, after_path="children", data=data
+        )
         return Element(api=self.api, name="blocks", obj=BlockArray(new_blocks["results"]))
 
     def __repr__(self):

@@ -2,28 +2,25 @@
 
 import logging
 
-import yaml
 
-# Base URL
+# Base URL (mandatory)
 NOTION_URL = "https://api.notion.com/v1/"
 
-# Access token
-with open("token") as f:
-    NOTION_SECRET = f.read()
+# Access token (optional)
+try:
+    with open("token") as f:
+        NOTION_SECRET = f.read()
+except FileNotFoundError:
+    NOTION_SECRET = None
 
-# Current API Version
+# Current API Version (mandatory)
 NOTION_VERSION = "2021-08-16"
 
-# Logging settings
+# Logging settings (mandatory)
 LOGGING_BASE_LEVEL = logging.WARNING
 LOGGING_TO_CONSOLE = False
 # set `None` to do not logging into file
 LOGGING_FILE = None
-
-
-# Find database params
-# with open("config.yaml") as f:
-#     config = yaml.safe_load(f)
 
 # every resource has `object` property (type declaration)
 # every resource has `id` property (UUIDv4)

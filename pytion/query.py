@@ -164,7 +164,6 @@ class Sort(object):
 class Request(object):
     def __init__(
             self,
-            session: requests.Session,
             method: Optional[str] = None,
             path: Optional[str] = None,
             id_: str = "",
@@ -176,13 +175,21 @@ class Request(object):
             filter_: Optional[Filter] = None,
             sorts: Optional[Sort] = None,
     ):
-        self.session = session
+        self.session = requests.Session()
         self.base = base if base else envs.NOTION_URL
         self._token = token if token else envs.NOTION_SECRET
         self.version = envs.NOTION_VERSION
         self.auth = {"Authorization": "Bearer " + self._token}
         self.headers = {"Notion-Version": self.version, **self.auth}
         self.result = None
+
+        if method:
+            self.result = self.method(method, path, id_, data, after_path, limit, filter_, sorts)
+
+    def method(
+            self, method, path, id_="", data=None, after_path=None,
+            limit=0, filter_: Optional[Filter] = None, sorts: Optional[Sort] = None
+    ):
         if filter_:
             if data:
                 data["filter"] = filter_.filter
@@ -193,10 +200,6 @@ class Request(object):
                 data["sorts"] = sorts.sorts
             else:
                 data = {"sorts": sorts.sorts}
-        if method:
-            self.result = self.method(method, path, id_, data, after_path, limit)
-
-    def method(self, method, path, id_="", data=None, after_path=None, limit=0):
         url = self.base + path + "/" + id_
         if limit and method == "get":
             if after_path:
