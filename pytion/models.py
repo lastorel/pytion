@@ -133,9 +133,10 @@ class Property(object):
 
 
 class PropertyValue(Property):
-    def __init__(self, data: Dict, name: str):
+    def __init__(self, data: Dict, name: str, **kwargs):
         super().__init__(data)
         self.name = name
+        self.value = None
         # self.raw_value = data.get(self.type)
 
         if self.type in ["title", "rich_text"]:
