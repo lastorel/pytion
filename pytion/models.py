@@ -135,9 +135,15 @@ class Property(object):
 class PropertyValue(Property):
     def __init__(self, data: Dict, name: str, **kwargs):
         super().__init__(data)
+        # getting Paginated Properties (for retrieving property item)
+        # *Pagination
+        if data.get("object") and data["object"] == "list":
+            if data.get("results"):
+                self.type = data["results"][0].get("type")
+                data[self.type] = [sub_dict.get(sub_dict.get("type")) for sub_dict in data["results"]]
+
         self.name = name
         self.value = None
-        # self.raw_value = data.get(self.type)
 
         if self.type in ["title", "rich_text"]:
             if isinstance(data[self.type], list):
