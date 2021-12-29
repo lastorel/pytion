@@ -188,7 +188,7 @@ class Request(object):
 
     def method(
             self, method, path, id_="", data=None, after_path=None,
-            limit=0, filter_: Optional[Filter] = None, sorts: Optional[Sort] = None
+            limit=0, filter_: Optional[Filter] = None, sorts: Optional[Sort] = None, pagination_loop: bool = False,
     ):
         if filter_:
             if data:
@@ -228,8 +228,11 @@ class Request(object):
         except json.JSONDecodeError:
             logger.error(f"Result is not OK. JSON decoding fail\n{result.content}")
             raise ContentError(result)
-        if not limit:
+
+        # pagination section
+        if not limit and not pagination_loop:
             self.paginate(r, method, path, id_, data, after_path)
+
         return r
 
     def paginate(self, result, method, path, id_, data, after_path):
@@ -237,19 +240,23 @@ class Request(object):
             next_start = result.get("next_cursor")
             logger.info(f"Paginated answer. Repeat with offset {next_start}")
 
-            # if GET method then parameters are in request string
-            # if POST method then parameters are in body
-            if method == "get":
-                if after_path:
-                    after_path += "?" + urlencode({"start_cursor": next_start})
-                else:
-                    path += "?" + urlencode({"start_cursor": next_start})
-            elif method == "post":
-                if not data:
-                    data = {}
-                data.update({"start_cursor": next_start})
+            super_after_path = after_path
+            super_path = path
+
             while next_start:
-                r = self.method(method, path, id_, data, after_path)
+                # if GET method then parameters are in request string
+                # if POST method then parameters are in body
+                if method == "get":
+                    if after_path:
+                        super_after_path = after_path + "?" + urlencode({"start_cursor": next_start})
+                    else:
+                        super_path = path + "?" + urlencode({"start_cursor": next_start})
+                elif method == "post":
+                    if not data:
+                        data = {}
+                    data.update({"start_cursor": next_start})
+
+                r = self.method(method, super_path, id_, data, super_after_path, pagination_loop=True)
                 if r.get("object", "") == "list" and r.get("results"):
                     result["results"].extend(r["results"])
                 if r.get("has_more"):
