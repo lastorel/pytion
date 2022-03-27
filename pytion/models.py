@@ -452,36 +452,36 @@ class Block(Model):
             return
 
         if self.type == "paragraph":
-            self.text = RichTextArray(kwargs[self.type].get("text"))
+            self.text = RichTextArray(kwargs[self.type].get("rich_text"))
             # Paragraph Block does not contain `children` attr (watch Docs)
 
         if "heading" in self.type:
-            self.text = RichTextArray(kwargs[self.type].get("text"))
+            self.text = RichTextArray(kwargs[self.type].get("rich_text"))
 
         if self.type == "callout":
-            self.text = RichTextArray(kwargs[self.type].get("text"))
+            self.text = RichTextArray(kwargs[self.type].get("rich_text"))
             self.icon: Dict = kwargs[self.type].get("icon")
             # Callout Block does not contain `children` attr (watch Docs)
 
         if self.type == "quote":
-            self.text = RichTextArray(kwargs[self.type].get("text"))
+            self.text = RichTextArray(kwargs[self.type].get("rich_text"))
             # Quote Block does not contain `children` attr (watch Docs)
 
         if "list_item" in self.type:
-            self.text = RichTextArray(kwargs[self.type].get("text"))
+            self.text = RichTextArray(kwargs[self.type].get("rich_text"))
             # Block does not contain `children` attr (watch Docs)
 
         if self.type == "to_do":
-            self.text = RichTextArray(kwargs[self.type].get("text"))
+            self.text = RichTextArray(kwargs[self.type].get("rich_text"))
             self.checked: bool = kwargs[self.type].get("checked")
             # To-do Block does not contain `children` attr (watch Docs)
 
         if self.type == "toggle":
-            self.text = RichTextArray(kwargs[self.type].get("text"))
+            self.text = RichTextArray(kwargs[self.type].get("rich_text"))
             # Toggle Block does not contain `children` attr (watch Docs)
 
         if self.type == "code":
-            self.text = RichTextArray(kwargs[self.type].get("text"))
+            self.text = RichTextArray(kwargs[self.type].get("rich_text"))
             self.language: str = kwargs[self.type].get("language")
 
         # when the block is page, parent will be the page object
@@ -522,7 +522,7 @@ class Block(Model):
         ]:
 
             text = RichTextArray.create(self.text) if isinstance(self.text, str) else self.text
-            new_dict = {self.type: {"text": text.get()}}
+            new_dict = {self.type: {"rich_text": text.get()}}
             if self.type == "to_do" and hasattr(self, "checked"):
                 new_dict[self.type]["checked"] = self.checked
             if self.type == "code":
