@@ -63,7 +63,7 @@ class ContentError(Exception):
 
 
 class Filter(object):
-    _filter_condition_types = ["rich_text", "number", "checkbox", "select", "multi_select", "date"]
+    _filter_condition_types = ["rich_text", "number", "checkbox", "select", "multi_select", "date", "phone_number"]
 
     def __init__(
             self,
@@ -83,7 +83,7 @@ class Filter(object):
                 self.property_name = property_obj.id
             else:
                 self.property_name = property_obj.name
-            if property_obj.type in ["title", "rich_text", "url", "email", "phone"]:
+            if property_obj.type in ["title", "rich_text", "url", "email"]:
                 self.property_type = "rich_text"
             elif "time" in property_obj.type:
                 self.property_type = "date"
@@ -109,6 +109,9 @@ class Filter(object):
             self.condition = "equals" if not condition else condition
             self.value = str(value)
         elif self.property_type == "multi_select":
+            self.condition = "contains" if not condition else condition
+            self.value = str(value)
+        elif self.property_type == "phone_number":
             self.condition = "contains" if not condition else condition
             self.value = str(value)
         elif self.property_type == "date":
