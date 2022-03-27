@@ -3,6 +3,7 @@ from typing import Optional, Union
 
 import pytion.envs as envs
 from pytion.api import Notion
+from pytion.exceptions import *
 
 
 def setup_logging(
