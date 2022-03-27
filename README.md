@@ -1,7 +1,7 @@
 # pytion
 Unofficial Python client for official Notion API (for internal integrations only)
 
-Supports Notion API version = **"2021-08-16"**
+Supports Notion API version = **"2022-02-22"**
 
 Works with **Python 3.8+**
 
