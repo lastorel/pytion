@@ -221,7 +221,7 @@ class Element(object):
         :param value: the value of this property to filter by (may be bool or datetime etc.)
         :param property_type: mandatory field - `text`, `number`, `checkbox`, `date`, `select` etc.
         :param condition: optional field - it depends on the type: `starts_with`, `contains`, `equals` etc.
-        :param raw: correctly formatted dict to pass direct to API (instead all other params)
+        :param raw: correctly formatted dict to pass direct to API (instead of all other params)
         :param property_obj: Property or PropertyValue obj. instead of `property_name` and `property_type`,
                              PropertyValue can put value in request, if `value` is not provided
 
@@ -236,7 +236,7 @@ class Element(object):
         `.db_filter(property_name="tags", property_type="multi_select", condition="is_not_empty")`
         `.db_filter(raw=YOUR_BIG_DICT_FROM_NOTION_DOCS, limit=2)`
 
-        Filters combinations does not supported. (in `raw` param only)
+        Filters combinations are not supported. (in `raw` param only)
         """
         if self.name == "databases" and self.obj:
             sort = None
@@ -257,8 +257,8 @@ class Element(object):
         :param database_obj:  you can provide `Database` object or -
                               provide the params for creating it:
         :param parent:
-        :param properties:
-        :param title:
+        :param properties:    dict of properties. Property with `title` type is mandatory!
+        :param title:         your name of the Database
         :return:              self.obj -> Database
 
         `parent = LinkTo.create(database_id="24512345125123421")`
@@ -286,7 +286,7 @@ class Element(object):
     ) -> Optional[Element]:
         """
         :param id_:         provide id of database if `self.obj` is empty
-        :param title:       provide RichTextArray text to rename database
+        :param title:       provide RichTextArray or text to rename database
         :param properties:  provide dict of Property to update them
         :return:            self.obj -> Database
 
@@ -364,7 +364,7 @@ class Element(object):
         :param id_:         ID of page
         :param properties:  dict of existing properties
         :param title:
-        :param archived:    set `True` to delete the page
+        :param archived:    set to `True` for delete the page
         :return:            self.obj -> Page
         """
         if self.name != "pages":

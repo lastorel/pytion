@@ -14,7 +14,7 @@ except FileNotFoundError:
     NOTION_SECRET = None
 
 # Current API Version (mandatory)
-NOTION_VERSION = "2021-08-16"
+NOTION_VERSION = "2022-02-22"
 
 # Logging settings (mandatory)
 LOGGING_BASE_LEVEL = logging.WARNING

@@ -52,7 +52,7 @@ class ContentError(Exception):
         req = message
 
         message = (
-            "The server returned invalid (non-json) data. Maybe not " "a Notion server?"
+            "The server returned invalid (non-json) data. Maybe not a Notion server?"
         )
 
         super(ContentError, self).__init__(message)
@@ -63,7 +63,7 @@ class ContentError(Exception):
 
 
 class Filter(object):
-    _filter_condition_types = ["text", "number", "checkbox", "select", "multi_select", "date"]
+    _filter_condition_types = ["rich_text", "number", "checkbox", "select", "multi_select", "date"]
 
     def __init__(
             self,
@@ -84,7 +84,7 @@ class Filter(object):
             else:
                 self.property_name = property_obj.name
             if property_obj.type in ["title", "rich_text", "url", "email", "phone"]:
-                self.property_type = "text"
+                self.property_type = "rich_text"
             elif "time" in property_obj.type:
                 self.property_type = "date"
             else:
@@ -96,7 +96,7 @@ class Filter(object):
         if self.property_type not in self._filter_condition_types:
             raise ValueError(f"Allowed types {self.allowed_condition_types} ({property_type} is provided)")
 
-        if self.property_type == "text":
+        if self.property_type == "rich_text":
             self.condition = "contains" if not condition else condition
             self.value = str(value)
         elif self.property_type == "number":
