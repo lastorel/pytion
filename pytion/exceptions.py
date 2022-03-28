@@ -2,6 +2,7 @@
 
 import logging
 import json
+from typing import Dict
 
 from requests import Response
 
@@ -32,22 +33,28 @@ class ServerError(Exception):
 
 
 class InvalidJSON(ClientError):
-    def __init__(self, message: Response):
-        req = message
-        message = f"Failed with code {req.status_code}. Raw: {req.content}"
+    def __init__(self, req: Response):
+        message = f"Body could not be decoded as JSON: {req.request.body}"
         super(ClientError, self).__init__(message)
-        self.req = req
-        self.request_body = req.request.body
-        self.base = req.url
-        self.error = message
 
 
 class InvalidRequestURL(ClientError):
-    pass
+    def __init__(self, req: Response):
+        message = f"The request URL is not valid: {req.url}"
+        super(ClientError, self).__init__(message)
+
+
+class InvalidRequest(ClientError):
+    def __init__(self, req: Response):
+        message = f"This request is not supported: {req.url} {req.request.method}"
+        super(ClientError, self).__init__(message)
 
 
 class ValidationError(ClientError):
-    pass
+    def __init__(self, content: Dict):
+        message = content.get("message")
+        message = f"The request body does not match the schema: {message}"
+        super(ClientError, self).__init__(message)
 
 
 class MissingVersion(ClientError):
@@ -120,6 +127,10 @@ def find_request_error(req: Response):
             raise InvalidJSON(req)
         elif error_code == "invalid_request_url":
             raise InvalidRequestURL(req)
+        elif error_code == "invalid_request":
+            raise InvalidRequest(req)
+        elif error_code == "validation_error":
+            raise ValidationError(content)
         pass
 # todo
     return content
