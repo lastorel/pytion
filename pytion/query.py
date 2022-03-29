@@ -10,6 +10,7 @@ import requests
 
 import pytion.envs as envs
 from pytion.models import Property, PropertyValue
+from pytion.exceptions import find_response_error
 
 
 logger = logging.getLogger(__name__)
@@ -223,14 +224,8 @@ class Request(object):
         logger.debug(f"STATUS CODE: {result.status_code}")
         logger.debug(f"CONTENT: {result.content}")
         logger.info(f"{result.status_code} Received")
-        if not result.ok:
-            logger.error(f"Result is not OK. {result.status_code}\n{result.reason}")
-            raise RequestError(result)
-        try:
-            r = result.json()
-        except json.JSONDecodeError:
-            logger.error(f"Result is not OK. JSON decoding fail\n{result.content}")
-            raise ContentError(result)
+
+        r = find_response_error(result)
 
         # pagination section
         if not limit and not pagination_loop:
