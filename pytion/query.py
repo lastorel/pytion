@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import json
 import logging
 from urllib.parse import urlencode
 from typing import Dict, Optional, Any, Union
@@ -14,53 +13,6 @@ from pytion.exceptions import find_response_error
 
 
 logger = logging.getLogger(__name__)
-
-
-class RequestError(Exception):
-    def __init__(self, message):
-        req = message
-
-        if req.status_code == 404:
-            message = "The requested url: {} could not be found.".format(req.url)
-        else:
-            try:
-                message = "The request failed with code {} {}: {}".format(
-                    req.status_code, req.reason, req.json()
-                )
-            except ValueError:
-                message = (
-                    "The request failed with code {} {} but more specific "
-                    "details were not returned in json.".format(
-                        req.status_code, req.reason
-                    )
-                )
-
-        super(RequestError, self).__init__(message)
-        self.req = req
-        self.request_body = req.request.body
-        self.base = req.url
-        self.error = req.text
-
-
-class ContentError(Exception):
-    """Content Exception
-    If the API URL does not point to a valid Notion API, the server may
-    return a valid response code, but the content is not json. This
-    exception is raised in those cases.
-    """
-
-    def __init__(self, message):
-        req = message
-
-        message = (
-            "The server returned invalid (non-json) data. Maybe not a Notion server?"
-        )
-
-        super(ContentError, self).__init__(message)
-        self.req = req
-        self.request_body = req.request.body
-        self.base = req.url
-        self.error = message
 
 
 class Filter(object):
@@ -261,4 +213,3 @@ class Request(object):
                     next_start = r.get("next_cursor")
                 else:
                     next_start = None
-
