@@ -35,62 +35,87 @@ class ServerError(Exception):
 class InvalidJSON(ClientError):
     def __init__(self, req: Response):
         message = f"Body could not be decoded as JSON: {req.request.body}"
-        super(ClientError, self).__init__(message)
+        Exception.__init__(self, message)
 
 
 class InvalidRequestURL(ClientError):
     def __init__(self, req: Response):
         message = f"The request URL is not valid: {req.url}"
-        super(ClientError, self).__init__(message)
+        Exception.__init__(self, message)
 
 
 class InvalidRequest(ClientError):
     def __init__(self, req: Response):
         message = f"This request is not supported: {req.url} {req.request.method}"
-        super(ClientError, self).__init__(message)
+        Exception.__init__(self, message)
 
 
 class ValidationError(ClientError):
     def __init__(self, content: Dict):
         message = content.get("message")
         message = f"The request body does not match the schema: {message}"
-        super(ClientError, self).__init__(message)
+        Exception.__init__(self, message)
 
 
 class MissingVersion(ClientError):
-    pass
+    def __init__(self, *args):
+        message = "The request is missing the required Notion-Version header."
+        Exception.__init__(self, message)
 
 
 class Unauthorized(ClientError):
-    pass
+    def __init__(self, *args):
+        message = "The bearer token is not valid."
+        Exception.__init__(self, message)
 
 
 class RestrictedResource(ClientError):
-    pass
+    def __init__(self, *args):
+        message = "Given the bearer token used, the client doesn't have permission to perform this operation."
+        Exception.__init__(self, message)
 
 
 class ObjectNotFound(ClientError):
-    pass
+    def __init__(self, req: Response):
+        message = f"{req.url}" \
+                  "The resource does not exist or the resource has not been shared with owner of the bearer token."
+        Exception.__init__(self, message)
 
 
 class ConflictError(ClientError):
-    pass
+    def __init__(self, *args):
+        message = "The transaction could not be completed, potentially due to a data collision. Make sure the " \
+                  "parameters are up to date and try again."
+        Exception.__init__(self, message)
 
 
 class RateLimited(ClientError):
-    pass
+    def __init__(self, *args):
+        message = "This request exceeds the number of requests allowed. Slow down and try again."
+        Exception.__init__(self, message)
 
 
 class InternalServerError(ServerError):
-    pass
+    def __init__(self, req: Response):
+        self.req = req
+        self.request_body = req.request.body
+        self.base = req.url
+        self.error = req.content
+        message = f"An unexpected error occurred. Reach out to Notion support. {req.status_code}: " \
+                  f"{req.request.method} {self.base} {self.request_body} -> {self.error}"
+        Exception.__init__(self, message)
 
 
 class ServiceUnavailable(ServerError):
-    pass
+    def __init__(self, *args):
+        message = "Notion is unavailable. Try again later."
+        Exception.__init__(self, message)
 
 
 class DatabaseConnectionUnavailable(ServerError):
-    pass
+    def __init__(self, *args):
+        message = "Notion's database is unavailable or in an unqueryable state. Try again later."
+        Exception.__init__(self, message)
 
 
 class ContentError(Exception):
@@ -114,13 +139,16 @@ class ContentError(Exception):
         self.error = message
 
 
-def find_request_error(req: Response):
+def find_response_error(req: Response) -> Dict:
     try:
         content = req.json()
     except json.JSONDecodeError:
         logger.error(f"Result is not OK. JSON decoding fail\n{req.content}")
         raise ContentError(req)
-    status_code = req.status_code
+    if req.ok:
+        return content
+    logger.error(f"Result is not OK. {req.status_code}\n{req.reason}")
+    status_code = int(req.status_code)
     error_code = content.get("code")
     if error_code:
         if error_code == "invalid_json":
@@ -131,6 +159,26 @@ def find_request_error(req: Response):
             raise InvalidRequest(req)
         elif error_code == "validation_error":
             raise ValidationError(content)
-        pass
-# todo
-    return content
+        elif error_code == "missing_version":
+            raise MissingVersion()
+        elif error_code == "unauthorized":
+            raise Unauthorized()
+        elif error_code == "restricted_resource":
+            raise RestrictedResource()
+        elif error_code == "object_not_found":
+            raise ObjectNotFound(req)
+        elif error_code == "conflict_error":
+            raise ConflictError()
+        elif error_code == "rate_limited":
+            raise RateLimited()
+        elif error_code == "internal_server_error":
+            raise InternalServerError(req)
+        elif error_code == "service_unavailable":
+            raise ServiceUnavailable()
+        elif error_code == "database_connection_unavailable":
+            raise DatabaseConnectionUnavailable()
+    if 400 <= status_code < 500:
+        raise ClientError(req)
+    elif 500 <= status_code < 600:
+        raise ServerError(req)
+    raise Exception(f"An unexpected error occurred. {req.status_code}: {req.content}")
