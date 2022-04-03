@@ -72,43 +72,59 @@ There are user classmethods for models:
 `RichTextArray.create()`, `Property.create()`, `PropertyValue.create()`, `Database.create()`, `Page.create()`, `Block.create()`, `LinkTo.create()`
 ### Supported block types
 At present the API only supports the block types which are listed in the reference below. Any unsupported block types will continue to appear in the structure, but only contain a `type` set to `"unsupported"`.
+Colors are not yet supported.
 
-| Block Type | Description | Read support | Create support | Can have children |
-| --- | --- | --- | --- | --- |
-| `paragraph` | Simple Block with text | + | + | + |
-| `heading_1` | Heading Block with text highest level | + | - | - |
-| `heading_2` | Heading Block with text medium level | + | - | - |
-| `heading_3` | Heading Block with text lowest level | + | - | - |
-| `bulleted_list_item` |  | - | - | + |
-| `numbered_list_item` |  | - | - | + |
-| `to_do` | Text Block with checkbox | + | + | + |
-| `toggle` |  | - | - | + |
-| `child_page` | Page inside | + | - | + |
-| `child_database` | Database inside | + | - | + |
-| `embed` |  | - | - | - |
-| `image` |  | - | - | - |
-| `video` |  | - | - | - |
-| `file` |  | - | - | - |
-| `pdf` |  | - | - | - |
-| `bookmark` |  | - | - | - |
-| `callout` |  | - | - | + |
-| `quote` |  | - | - | + |
-| `equation` |  | - | - | - |
-| `divider` | Simple line to divide the page | + | - | - |
-| `table_of_contents` |  | - | - | - |
-| `column` |  | - | - | + |
-| `column_list` |  | - | - | - |
-| `link_preview` |  | - | - | - |
-| `synced_block` |  | - | - | + |
-| `template` |  | - | - | + |
-| `link_to_page` | Block with link to particular page `@...` | - | - | - |
-| `table` |  | - | - | + |
-| `table_row` |  | - | - | - |
-| `unsupported` |  | + | - | - |
+Every Block has mandatory attributes and extension attributes. There are mandatory:
+- `id: str` - UUID-64 without hyphens
+- `object: str` - always `"block"` (from API)
+- `created_time: datetime` - from API 
+- `last_edited_time: datetime` - from API
+- `type: str` - the type of block (from API)
+- `has_children: bool` - does the block have children blocks (from API)
+- `archived: bool` - does the block marked as deleted (from API)
+- `text: Union[str, RichTextArray]` - **main content**
 
+Extension attributes are listed below in support matrix:
+
+| Block Type | Description | Read support | Create support | Can have children | Extension attributes |
+| --- | --- | --- | --- | --- | --- |
+| `paragraph` | Simple Block with text | + | + | + | |
+| `heading_1` | Heading Block with text highest level | + | - | - | |
+| `heading_2` | Heading Block with text medium level | + | - | - | |
+| `heading_3` | Heading Block with text lowest level | + | - | - | |
+| `bulleted_list_item` | Text Block with bullet | + | - | + | |
+| `numbered_list_item` | Text Block with number | + | - | + | |
+| `to_do` | Text Block with checkbox | + | + | + | `checked: bool` |
+| `toggle` | Text Block with toggle to children blocks | + | - | + | |
+| `code` | Text Block with code style | + | + | + | `language: str` |
+| `child_page` | Page inside | + | - | + | |
+| `child_database` | Database inside | + | - | + | |
+| `embed` |  | - | - | - | |
+| `image` |  | - | - | - | |
+| `video` |  | - | - | - | |
+| `file` |  | - | - | - | |
+| `pdf` |  | - | - | - | |
+| `bookmark` | Block for URL Link | + | - | - | `caption: RichTextArray` |
+| `callout` | Highlighted footnote text Block | + | - | + | `icon: dict` |
+| `quote` | Text Block with quote style | + | - | + | |
+| `equation` | KaTeX compatible text Block | + | - | - | |
+| `divider` | Simple line to divide the page | + | - | - | |
+| `table_of_contents` | Block with content structure in the page | - | - | - | |
+| `column` |  | - | - | + | |
+| `column_list` |  | - | - | - | |
+| `link_preview` |  Same as `bookmark` | - | - | - | |
+| `synced_block` | Block for synced content aka parent | - | - | + | |
+| `template` | Template Block title | - | - | + | |
+| `link_to_page` | Block with link to particular page `@...` | - | - | - | |
+| `table` | Table Block with some attrs | - | - | + | |
+| `table_row` | Children Blocks with table row content | - | - | - | |
+| `breadcrumb` | Empty Block actually | + | - | - | |
+| `unsupported` | Blocks unsupported by API | + | - | - | |
+
+API converts **toggle heading** Block to simple heading Block.
 
 ## Logging
-Logging is muted by default. To enable to stdout and to file:
+Logging is muted by default. To enable to stdout and/or to file:
 ```
 from pytion import setup_logging
 

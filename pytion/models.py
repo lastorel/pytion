@@ -85,6 +85,7 @@ class Model(object):
         self.created_time = self.format_iso_time(kwargs.get("created_time"))
         self.last_edited_time = self.format_iso_time(kwargs.get("last_edited_time"))
         self.raw = kwargs
+        # todo created_by, last_edited_by
 
     @classmethod
     def format_iso_time(cls, time: str) -> Optional[datetime]:
@@ -467,10 +468,13 @@ class Block(Model):
         elif self.type == "quote":
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
             # Quote Block does not contain `children` attr (watch Docs)
+            # todo add `|` before the text
 
         elif "list_item" in self.type:
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
             # Block does not contain `children` attr (watch Docs)
+            # todo add `-` before the text
+            # Numbers does not support cause of lack of relativity
 
         elif self.type == "to_do":
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
@@ -484,6 +488,8 @@ class Block(Model):
         elif self.type == "code":
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
             self.language: str = kwargs[self.type].get("language")
+            # todo add ``` to the text
+            # todo add `caption`
 
         # when the block is page, parent will be the page object
         elif "child" in self.type:
