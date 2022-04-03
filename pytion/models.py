@@ -455,59 +455,67 @@ class Block(Model):
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
             # Paragraph Block does not contain `children` attr (watch Docs)
 
-        if "heading" in self.type:
+        elif "heading" in self.type:
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
+            # todo add `#`*level before the text
 
-        if self.type == "callout":
+        elif self.type == "callout":
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
             self.icon: Dict = kwargs[self.type].get("icon")
             # Callout Block does not contain `children` attr (watch Docs)
 
-        if self.type == "quote":
+        elif self.type == "quote":
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
             # Quote Block does not contain `children` attr (watch Docs)
 
-        if "list_item" in self.type:
+        elif "list_item" in self.type:
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
             # Block does not contain `children` attr (watch Docs)
 
-        if self.type == "to_do":
+        elif self.type == "to_do":
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
             self.checked: bool = kwargs[self.type].get("checked")
             # To-do Block does not contain `children` attr (watch Docs)
 
-        if self.type == "toggle":
+        elif self.type == "toggle":
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
             # Toggle Block does not contain `children` attr (watch Docs)
 
-        if self.type == "code":
+        elif self.type == "code":
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
             self.language: str = kwargs[self.type].get("language")
 
         # when the block is page, parent will be the page object
-        if "child" in self.type:
+        elif "child" in self.type:
             self.text = kwargs[self.type].get("title")
             if self.type == "child_page":
                 self.parent = LinkTo(type="page", page=self.id)
+            # page self.has_children is correct. checked.
+            # database self.has_children is false.
+            # database with custom source has no title!
+            # todo if child database - can we set self.parent?
 
-        if self.type in ["embed", "image", "video", "file", "pdf", "breadcrumb"]:
+        elif self.type in ["embed", "image", "video", "file", "pdf", "breadcrumb"]:
             self.text = self.type
 
-        if self.type == "bookmark":
+        elif self.type == "bookmark":
             self.text: str = kwargs[self.type].get("url")
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
 
-        if self.type == "equation":
+        elif self.type == "equation":
             self.text: str = kwargs[self.type].get("expression")
 
-        if self.type == "divider":
+        elif self.type == "divider":
             self.text = "---"
 
-        if self.type == "table_of_contents":
+        elif self.type == "table_of_contents":
             self.text = self.type
 
-        if self.type == "unsupported":
+        elif self.type == "unsupported":
             self.text = "*****"
+
+        else:
+            self.text = "*UNKNOWN_BLOCK_TYPE*"
 
     def __str__(self):
         return str(self.text)
