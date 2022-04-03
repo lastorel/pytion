@@ -70,6 +70,43 @@ More details and examples of this methods you can see into func descriptions.
 ### pytion.models.*
 There are user classmethods for models:
 `RichTextArray.create()`, `Property.create()`, `PropertyValue.create()`, `Database.create()`, `Page.create()`, `Block.create()`, `LinkTo.create()`
+### Supported block types
+At present the API only supports the block types which are listed in the reference below. Any unsupported block types will continue to appear in the structure, but only contain a `type` set to `"unsupported"`.
+
+| Block Type | Description | Read support | Create support | Can have children |
+| --- | --- | --- | --- | --- |
+| `paragraph` | Simple Block with text | + | + | + |
+| `heading_1` | Heading Block with text highest level | + | - | - |
+| `heading_2` | Heading Block with text medium level | + | - | - |
+| `heading_3` | Heading Block with text lowest level | + | - | - |
+| `bulleted_list_item` |  | - | - | + |
+| `numbered_list_item` |  | - | - | + |
+| `to_do` | Text Block with checkbox | + | + | + |
+| `toggle` |  | - | - | + |
+| `child_page` | Page inside | + | - | + |
+| `child_database` | Database inside | + | - | + |
+| `embed` |  | - | - | - |
+| `image` |  | - | - | - |
+| `video` |  | - | - | - |
+| `file` |  | - | - | - |
+| `pdf` |  | - | - | - |
+| `bookmark` |  | - | - | - |
+| `callout` |  | - | - | + |
+| `quote` |  | - | - | + |
+| `equation` |  | - | - | - |
+| `divider` | Simple line to divide the page | + | - | - |
+| `table_of_contents` |  | - | - | - |
+| `column` |  | - | - | + |
+| `column_list` |  | - | - | - |
+| `link_preview` |  | - | - | - |
+| `synced_block` |  | - | - | + |
+| `template` |  | - | - | + |
+| `link_to_page` | Block with link to particular page `@...` | - | - | - |
+| `table` |  | - | - | + |
+| `table_row` |  | - | - | - |
+| `unsupported` |  | + | - | - |
+
+
 ## Logging
 Logging is muted by default. To enable to stdout and to file:
 ```
