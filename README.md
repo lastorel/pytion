@@ -69,7 +69,7 @@ some text
 More details and examples of this methods you can see into func descriptions.
 ### pytion.models.*
 There are user classmethods for models:
-`RichTextArray.create()`, `Property.create()`, `PropertyValue.create()`, `Database.create()`, `Page.create()`, `Block.create()`, `LinkTo.create()`
+`RichTextArray.create()`, `Property.create()`, `PropertyValue.create()`, `Database.create()`, `Page.create()`, `Block.create()`, `LinkTo.create()`, `User.create()`
 ### Supported block types
 At present the API only supports the block types which are listed in the reference below. Any unsupported block types will continue to appear in the structure, but only contain a `type` set to `"unsupported"`.
 Colors are not yet supported.

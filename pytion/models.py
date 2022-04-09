@@ -14,7 +14,23 @@ class RichText(object):
         self.href: Optional[str] = kwargs.get("href")
         self.annotations: Dict[str, Union[bool, str]] = kwargs.get("annotations")
         self.type: str = kwargs.get("type")
-        self.data: Dict = kwargs[self.type]
+        if self.type == "mention":
+            subtype = kwargs[self.type].get("type")
+            if subtype == "user":
+                self.data = User(**kwargs[self.type].get(subtype))
+                self.plain_text = str(self.data)
+            # todo mentions
+            elif subtype == "page":
+                sub_id = kwargs[self.type][subtype].get("id") if kwargs[self.type].get(subtype) else ""
+                self.data = LinkTo.create(page_id=sub_id)
+            elif subtype == "database":
+                pass
+            elif subtype == "date":
+                pass
+            elif subtype == "link_preview":
+                self.data: Dict = kwargs[self.type]
+        else:
+            self.data: Dict = kwargs[self.type]
 
     def __str__(self):
         return str(self.plain_text)
@@ -71,12 +87,69 @@ class RichTextArray(MutableSequence):
         return cls([{"type": "text", "plain_text": text, "text": {}}])
 
 
+class User(object):
+    """
+    The User object represents a user in a Notion workspace.
+    """
+    path = "users"
+
+    def __init__(self, **kwargs) -> None:
+        """
+        Create an User object by providing dict from API.
+
+        API attrs (from API docs):
+        Mandatory:
+        :param id: str
+        :param object: str
+
+        Optional:
+        :param type: str
+        :param name: str
+        :param avatar_url: str
+
+        Also Local attrs:
+        :param raw: dict from API
+        :param email: str if user is person
+        """
+        self.id = kwargs.get("id", "").replace("-", "")
+        self.object = kwargs.get("object")  # user
+        self.type = kwargs.get("type")
+        self.name = kwargs.get("name")
+        self.avatar_url = kwargs.get("avatar_url")
+        if self.type == "person" and kwargs.get(self.type):
+            self.email = kwargs[self.type].get("email")
+        else:
+            self.email = None
+        self.raw = kwargs
+
+    def __str__(self):
+        if self.name and self.email:
+            name = f"{self.name}({self.email})"
+        else:
+            name = self.name
+        return name if name else self.id
+
+    def __repr__(self):
+        return f"User({self})"
+
+    def get(self) -> Dict[str, str]:
+        return {
+            "object": self.object,
+            "id": self.id
+        }
+
+    @classmethod
+    def create(cls, id: str):
+        return cls(object="user", id=id)
+
+
 class Model(object):
     """
     :param id:
     :param object:
     :param created_time:
     :param last_edited_time:
+    :param raw:
     """
 
     def __init__(self, **kwargs) -> None:
@@ -84,8 +157,9 @@ class Model(object):
         self.object = kwargs.get("object")
         self.created_time = self.format_iso_time(kwargs.get("created_time"))
         self.last_edited_time = self.format_iso_time(kwargs.get("last_edited_time"))
+        self.created_by = User(**kwargs.get("created_by"))
+        self.last_edited_by = User(**kwargs.get("last_edited_by"))
         self.raw = kwargs
-        # todo created_by, last_edited_by
 
     @classmethod
     def format_iso_time(cls, time: str) -> Optional[datetime]:
@@ -98,7 +172,7 @@ class Property(object):
     def __init__(self, data: Dict[str, str]):
         self.to_delete = True if data.get("type") is None else False
         self.id: str = data.get("id")
-        self.type: str = data.get("type") if data.get("type") else ""
+        self.type: str = data.get("type", "")
         self.name: str = data.get("name")
         self.raw = data
 
@@ -203,13 +277,13 @@ class PropertyValue(Property):
                 self.value: Union[str, int, float, bool] = data["formula"][formula_type]
 
         if self.type == "created_by":
-            self.value = "unsupported"
+            self.value = User(**data.get(self.type))
 
         if self.type == "last_edited_by":
-            self.value = "unsupported"
+            self.value = User(**data.get(self.type))
 
         if self.type == "people":
-            self.value = "unsupported"
+            self.value = [user if isinstance(user, User) else User(**user) for user in data[self.type]]
 
         if self.type == "relation":
             self.value: List[str] = [item.get("id") for item in data["relation"]]
@@ -236,6 +310,8 @@ class PropertyValue(Property):
                     self.value = None
                     self.start = None
                     self.end = None
+            else:
+                self.value = "unsupported rollup type"
 
         if self.type == "files":
             self.value = "unsupported"
@@ -295,13 +371,18 @@ class PropertyValue(Property):
                 end = None
             return {self.type: {"start": start, "end": end}}
 
+        # people type
+        if self.type == "people":
+            return {self.type: [user.get() for user in self.value]}
+
         # unsupported types:
-        if self.type in ["files", "relation", "people"]:
+        if self.type in ["files", "relation"]:
             return {self.type: []}
         if self.type in ["created_time", "last_edited_by", "last_edited_time", "created_by"]:
             return None
         if self.type in ["formula", "rollup"]:
             return {self.type: {}}
+        return None
 
     @classmethod
     def create(cls, type_: str = "", value: Any = None, **kwargs):
