@@ -22,9 +22,18 @@ class RichText(object):
             # todo mentions
             elif subtype == "page":
                 sub_id = kwargs[self.type][subtype].get("id") if kwargs[self.type].get(subtype) else ""
-                self.data = LinkTo.create(page_id=sub_id)
+                self.data = LinkTo.create(page=sub_id)
+                if self.plain_text == "Untitled":
+                    self.plain_text = repr(self.data)
+                else:
+                    self.plain_text = "LinkTo(" + self.plain_text + ")"
             elif subtype == "database":
-                pass
+                sub_id = kwargs[self.type][subtype].get("id") if kwargs[self.type].get(subtype) else ""
+                self.data = LinkTo.create(database_id=sub_id)
+                if self.plain_text == "Untitled":
+                    self.plain_text = repr(self.data)
+                else:
+                    self.plain_text = "LinkTo(" + self.plain_text + ")"
             elif subtype == "date":
                 pass
             elif subtype == "link_preview":
@@ -704,11 +713,19 @@ class LinkTo(object):
     .id = `elementID`
 
     .get() - return API like style
+    .create() - create in format `(page_id="123412341234")` or (database_id="13412341234")`
     """
 
     def __init__(
             self, block: Optional[Block] = None, from_object: Optional[Block, Page, Database] = None, **kwargs
     ):
+        """
+        Creates LinkTo object from API dict
+
+        :param block: Block object can be provided instead other attrs. Internal usage.
+        :param from_object: Any model object can be provided to create LinkTo to it.
+        :param kwargs: API attrs. Internal usage.
+        """
         if block:
             self.type = block.object
             self.id = block.id
@@ -741,6 +758,15 @@ class LinkTo(object):
 
         if isinstance(self.id, str):
             self.id = self.id.replace("-", "")
+
+    def __str__(self):
+        prefix = self.uri if self.uri else self.type
+        if getattr(self, "after_path", ""):
+            return f"{prefix}/{self.id}/{self.after_path}"
+        return f"{prefix}/{self.id}"
+
+    def __repr__(self):
+        return f"LinkTo({self})"
 
     def get(self, without_type: bool = False):
         if without_type:
