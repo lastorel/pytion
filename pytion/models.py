@@ -19,7 +19,6 @@ class RichText(object):
             if subtype == "user":
                 self.data = User(**kwargs[self.type].get(subtype))
                 self.plain_text = str(self.data)
-            # todo mentions
             elif subtype == "page":
                 sub_id = kwargs[self.type][subtype].get("id") if kwargs[self.type].get(subtype) else ""
                 self.data = LinkTo.create(page=sub_id)
@@ -35,7 +34,10 @@ class RichText(object):
                 else:
                     self.plain_text = "LinkTo(" + self.plain_text + ")"
             elif subtype == "date":
-                pass
+                self.data = {
+                    "start": Model.format_iso_time(kwargs[self.type][subtype].get("start")),
+                    "end": Model.format_iso_time(kwargs[self.type][subtype].get("end"))
+                }
             elif subtype == "link_preview":
                 self.data: Dict = kwargs[self.type]
         else:
