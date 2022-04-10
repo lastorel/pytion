@@ -14,7 +14,34 @@ class RichText(object):
         self.href: Optional[str] = kwargs.get("href")
         self.annotations: Dict[str, Union[bool, str]] = kwargs.get("annotations")
         self.type: str = kwargs.get("type")
-        self.data: Dict = kwargs[self.type]
+        if self.type == "mention":
+            subtype = kwargs[self.type].get("type")
+            if subtype == "user":
+                self.data = User(**kwargs[self.type].get(subtype))
+                self.plain_text = str(self.data)
+            elif subtype == "page":
+                sub_id = kwargs[self.type][subtype].get("id") if kwargs[self.type].get(subtype) else ""
+                self.data = LinkTo.create(page=sub_id)
+                if self.plain_text == "Untitled":
+                    self.plain_text = repr(self.data)
+                else:
+                    self.plain_text = "LinkTo(" + self.plain_text + ")"
+            elif subtype == "database":
+                sub_id = kwargs[self.type][subtype].get("id") if kwargs[self.type].get(subtype) else ""
+                self.data = LinkTo.create(database_id=sub_id)
+                if self.plain_text == "Untitled":
+                    self.plain_text = repr(self.data)
+                else:
+                    self.plain_text = "LinkTo(" + self.plain_text + ")"
+            elif subtype == "date":
+                self.data = {
+                    "start": Model.format_iso_time(kwargs[self.type][subtype].get("start")),
+                    "end": Model.format_iso_time(kwargs[self.type][subtype].get("end"))
+                }
+            elif subtype == "link_preview":
+                self.data: Dict = kwargs[self.type]
+        else:
+            self.data: Dict = kwargs[self.type]
 
     def __str__(self):
         return str(self.plain_text)
@@ -63,6 +90,12 @@ class RichTextArray(MutableSequence):
     def __bool__(self):
         return any(map(bool, self.array))
 
+    def __add__(self, another: Union[RichTextArray, str]):
+        if isinstance(another, str):
+            another = RichTextArray.create(another)
+        self.array.extend(another)
+        return self
+
     def get(self) -> List[Dict[str, Any]]:
         return [item.get() for item in self]
 
@@ -71,12 +104,69 @@ class RichTextArray(MutableSequence):
         return cls([{"type": "text", "plain_text": text, "text": {}}])
 
 
+class User(object):
+    """
+    The User object represents a user in a Notion workspace.
+    """
+    path = "users"
+
+    def __init__(self, **kwargs) -> None:
+        """
+        Create an User object by providing dict from API.
+
+        API attrs (from API docs):
+        Mandatory:
+        :param id: str
+        :param object: str
+
+        Optional:
+        :param type: str
+        :param name: str
+        :param avatar_url: str
+
+        Also Local attrs:
+        :param raw: dict from API
+        :param email: str if user is person
+        """
+        self.id = kwargs.get("id", "").replace("-", "")
+        self.object = kwargs.get("object")  # user
+        self.type = kwargs.get("type")
+        self.name = kwargs.get("name")
+        self.avatar_url = kwargs.get("avatar_url")
+        if self.type == "person" and kwargs.get(self.type):
+            self.email = kwargs[self.type].get("email")
+        else:
+            self.email = None
+        self.raw = kwargs
+
+    def __str__(self):
+        if self.name and self.email:
+            name = f"{self.name}({self.email})"
+        else:
+            name = self.name
+        return name if name else self.id
+
+    def __repr__(self):
+        return f"User({self})"
+
+    def get(self) -> Dict[str, str]:
+        return {
+            "object": self.object,
+            "id": self.id
+        }
+
+    @classmethod
+    def create(cls, id: str):
+        return cls(object="user", id=id)
+
+
 class Model(object):
     """
     :param id:
     :param object:
     :param created_time:
     :param last_edited_time:
+    :param raw:
     """
 
     def __init__(self, **kwargs) -> None:
@@ -84,6 +174,8 @@ class Model(object):
         self.object = kwargs.get("object")
         self.created_time = self.format_iso_time(kwargs.get("created_time"))
         self.last_edited_time = self.format_iso_time(kwargs.get("last_edited_time"))
+        self.created_by = User(**kwargs.get("created_by"))
+        self.last_edited_by = User(**kwargs.get("last_edited_by"))
         self.raw = kwargs
 
     @classmethod
@@ -97,7 +189,7 @@ class Property(object):
     def __init__(self, data: Dict[str, str]):
         self.to_delete = True if data.get("type") is None else False
         self.id: str = data.get("id")
-        self.type: str = data.get("type") if data.get("type") else ""
+        self.type: str = data.get("type", "")
         self.name: str = data.get("name")
         self.raw = data
 
@@ -202,13 +294,13 @@ class PropertyValue(Property):
                 self.value: Union[str, int, float, bool] = data["formula"][formula_type]
 
         if self.type == "created_by":
-            self.value = "unsupported"
+            self.value = User(**data.get(self.type))
 
         if self.type == "last_edited_by":
-            self.value = "unsupported"
+            self.value = User(**data.get(self.type))
 
         if self.type == "people":
-            self.value = "unsupported"
+            self.value = [user if isinstance(user, User) else User(**user) for user in data[self.type]]
 
         if self.type == "relation":
             self.value: List[str] = [item.get("id") for item in data["relation"]]
@@ -235,6 +327,8 @@ class PropertyValue(Property):
                     self.value = None
                     self.start = None
                     self.end = None
+            else:
+                self.value = "unsupported rollup type"
 
         if self.type == "files":
             self.value = "unsupported"
@@ -294,13 +388,18 @@ class PropertyValue(Property):
                 end = None
             return {self.type: {"start": start, "end": end}}
 
+        # people type
+        if self.type == "people":
+            return {self.type: [user.get() for user in self.value]}
+
         # unsupported types:
-        if self.type in ["files", "relation", "people"]:
+        if self.type in ["files", "relation"]:
             return {self.type: []}
         if self.type in ["created_time", "last_edited_by", "last_edited_time", "created_by"]:
             return None
         if self.type in ["formula", "rollup"]:
             return {self.type: {}}
+        return None
 
     @classmethod
     def create(cls, type_: str = "", value: Any = None, **kwargs):
@@ -456,8 +555,10 @@ class Block(Model):
             # Paragraph Block does not contain `children` attr (watch Docs)
 
         elif "heading" in self.type:
-            self.text = RichTextArray(kwargs[self.type].get("rich_text"))
-            # todo add `#`*level before the text
+            indent = self.type.split("_")[-1]
+            indent_num = int(indent) if indent.isdigit() else 0
+            prefix = "#" * indent_num + " "
+            self.text = RichTextArray.create(prefix) + RichTextArray(kwargs[self.type].get("rich_text"))
 
         elif self.type == "callout":
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
@@ -465,35 +566,43 @@ class Block(Model):
             # Callout Block does not contain `children` attr (watch Docs)
 
         elif self.type == "quote":
-            self.text = RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create("| ") + RichTextArray(kwargs[self.type].get("rich_text"))
             # Quote Block does not contain `children` attr (watch Docs)
 
         elif "list_item" in self.type:
-            self.text = RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create("- ") + RichTextArray(kwargs[self.type].get("rich_text"))
             # Block does not contain `children` attr (watch Docs)
+            # Numbers does not support cause of lack of relativity
 
         elif self.type == "to_do":
-            self.text = RichTextArray(kwargs[self.type].get("rich_text"))
             self.checked: bool = kwargs[self.type].get("checked")
+            prefix = "[x] " if self.checked else "[ ] "
+            self.text = RichTextArray.create(prefix) + RichTextArray(kwargs[self.type].get("rich_text"))
             # To-do Block does not contain `children` attr (watch Docs)
 
         elif self.type == "toggle":
-            self.text = RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create("> ") + RichTextArray(kwargs[self.type].get("rich_text"))
             # Toggle Block does not contain `children` attr (watch Docs)
 
         elif self.type == "code":
-            self.text = RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create("```\n") + RichTextArray(kwargs[self.type].get("rich_text")) + "\n```"
             self.language: str = kwargs[self.type].get("language")
+            self.caption = RichTextArray(kwargs[self.type].get("caption"))
 
-        # when the block is page, parent will be the page object
+        # when the block is child_page, parent will be the page object
+        # when the block is child_database, children will be the database object
         elif "child" in self.type:
             self.text = kwargs[self.type].get("title")
             if self.type == "child_page":
                 self.parent = LinkTo(type="page", page=self.id)
+            elif self.type == "child_database":
+                self.children = LinkTo.create(database_id=self.id)
+                if not self.text:
+                    self.text = repr(self.children)
             # page self.has_children is correct. checked.
             # database self.has_children is false.
-            # database with custom source has no title!
-            # todo if child database - can we set self.parent?
+            # database with custom source had no title!
+            # if child database - can we set self.parent? - well no.
 
         elif self.type in ["embed", "image", "video", "file", "pdf", "breadcrumb"]:
             self.text = self.type
@@ -617,11 +726,19 @@ class LinkTo(object):
     .id = `elementID`
 
     .get() - return API like style
+    .create() - create in format `(page_id="123412341234")` or (database_id="13412341234")`
     """
 
     def __init__(
             self, block: Optional[Block] = None, from_object: Optional[Block, Page, Database] = None, **kwargs
     ):
+        """
+        Creates LinkTo object from API dict
+
+        :param block: Block object can be provided instead other attrs. Internal usage.
+        :param from_object: Any model object can be provided to create LinkTo to it.
+        :param kwargs: API attrs. Internal usage.
+        """
         if block:
             self.type = block.object
             self.id = block.id
@@ -654,6 +771,15 @@ class LinkTo(object):
 
         if isinstance(self.id, str):
             self.id = self.id.replace("-", "")
+
+    def __str__(self):
+        prefix = self.uri if self.uri else self.type
+        if getattr(self, "after_path", ""):
+            return f"{prefix}/{self.id}/{self.after_path}"
+        return f"{prefix}/{self.id}"
+
+    def __repr__(self):
+        return f"LinkTo({self})"
 
     def get(self, without_type: bool = False):
         if without_type:
