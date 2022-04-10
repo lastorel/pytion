@@ -7,6 +7,7 @@ from typing import Optional, Union, Dict, List
 import pytion.envs as envs
 from pytion.query import Request, Filter, Sort
 from pytion.models import Database, Page, Block, BlockArray, PropertyValue, PageArray, LinkTo, RichTextArray, Property
+from pytion.models import ElementArray, User
 
 
 Models = Union[Database, Page, Block, BlockArray, PropertyValue, PageArray]
@@ -39,7 +40,7 @@ class Notion(object):
 
 
 class Element(object):
-    class_map = {"page": Page, "database": Database, "block": Block}
+    class_map = {"page": Page, "database": Database, "block": Block, "user": User}
 
     def __init__(self, api: Notion, name: str, obj: Optional[Models] = None):
         self.api = api
@@ -47,7 +48,7 @@ class Element(object):
         self.obj = obj
         logger.debug(f"Element {self!r} created")
 
-    def get(self, id_: str) -> Element:
+    def get(self, id_: str, _after_path: str = None) -> Element:
         """
         Get Element by ID.
         .query.RequestError exception if not found
@@ -57,12 +58,24 @@ class Element(object):
         result = no.databases.get("1234123412341")
         result = no.pages.get("123412341234")
         result = no.blocks.get("123412341234")
+        result = no.users.get("123412341234")
         print(result.obj)
         """
         if "-" in id_:
             id_ = id_.replace("-", "")
-        raw_obj = self.api.session.method(method="get", path=self.name, id_=id_)
-        self.obj = self.class_map[raw_obj["object"]](**raw_obj)
+        if not _after_path:
+            raw_obj = self.api.session.method(method="get", path=self.name, id_=id_)
+        else:
+            raw_obj = self.api.session.method(method="get", path=self.name, id_=id_, after_path=_after_path)
+        if raw_obj["object"] == "list":
+            if self.name == "pages":
+                self.obj = PageArray(raw_obj["results"])
+            elif self.name == "blocks":
+                self.obj = BlockArray(raw_obj["results"])
+            else:
+                self.obj = ElementArray(raw_obj["results"])
+        else:
+            self.obj = self.class_map[raw_obj["object"]](**raw_obj)
         return self
 
     def get_parent(self, id_: Optional[str] = None) -> Optional[Element]:
@@ -467,6 +480,16 @@ class Element(object):
             method="patch", path="blocks", id_=id_, after_path="children", data=data
         )
         return Element(api=self.api, name="blocks", obj=BlockArray(new_blocks["results"]))
+
+    def from_linkto(self, linkto: LinkTo) -> Optional[Element]:
+        if not linkto.uri:
+            logger.error("LinkTo.uri must be provided!")
+            return None
+        new_element = Element(self.api, name=linkto.uri)
+        return new_element.get(linkto.id, getattr(linkto, "after_path", None))
+
+    def from_object(self, model: Union[Database, Page, Block]):
+        return Element(self.api, model.path, model)
 
     def __repr__(self):
         if not self.obj:

@@ -44,27 +44,32 @@ some text
 
 `.get_parent(id_)` - Get parent object of current object if possible.
 
-`.get_block_children(id_, limit)` - Get children Block objects of current Block object (tabulated texts) if exist
+`.get_block_children(id_, limit)` - Get children Block objects of current Block object (tabulated texts) if exist.
 
-`.get_block_children_recursive(id_, max_depth, limit, force)` - Get children Block objects of current Block object (tabulated texts) if exist recursive
+`.get_block_children_recursive(id_, max_depth, limit, force)` - Get children Block objects of current Block object (tabulated texts) if exist recursive.
 
 `.get_page_property(property_id, id_, limit)` - Retrieve a page property item.
 
-`.db_query(id_, limit, filter_, sorts)` - Query Database
+`.db_query(id_, limit, filter_, sorts)` - Query Database.
 
-`.db_filter(...see desc...)` - Query Database
+`.db_filter(...see desc...)` - Query Database.
 
-`.db_create(database_obj, parent, properties, title)` - Create Database
+`.db_create(database_obj, parent, properties, title)` - Create Database.
 
-`.db_update(id_, title, properties)` - Update Database
+`.db_update(id_, title, properties)` - Update Database.
 
-`.page_create(page_obj, parent, properties, title)` - Create Page
+`.page_create(page_obj, parent, properties, title)` - Create Page.
 
-`.page_update(id_, properties, title, archived)` - Update Page
+`.page_update(id_, properties, title, archived)` - Update Page.
 
 `.block_update(id_, block_obj, new_text, arcived)` - Update text in Block.
 
-`.block_append(id_, block, blocks)` - Append block or blocks children
+`.block_append(id_, block, blocks)` - Append block or blocks children.
+
+`.from_linkto(linkto)` - Creates new Element object based on LinkTo information.
+
+`.from_object(model)` - Creates new Element object from Page, Block or Database object.
+Usable while Element object contains an Array.
 
 More details and examples of this methods you can see into func descriptions.
 ### pytion.models.*
@@ -77,8 +82,10 @@ Colors are not yet supported.
 Every Block has mandatory attributes and extension attributes. There are mandatory:
 - `id: str` - UUID-64 without hyphens
 - `object: str` - always `"block"` (from API)
-- `created_time: datetime` - from API 
+- `created_time: datetime` - from API
+- `created_by: User` - from API
 - `last_edited_time: datetime` - from API
+- `last_edited_by: User` - from API
 - `type: str` - the type of block (from API)
 - `has_children: bool` - does the block have children blocks (from API)
 - `archived: bool` - does the block marked as deleted (from API)
@@ -88,38 +95,38 @@ Extension attributes are listed below in support matrix:
 
 | Block Type | Description | Read support | Create support | Can have children | Extension attributes |
 | --- | --- | --- | --- | --- | --- |
-| `paragraph` | Simple Block with text | + | + | + | |
-| `heading_1` | Heading Block with text highest level | + | - | - | |
-| `heading_2` | Heading Block with text medium level | + | - | - | |
-| `heading_3` | Heading Block with text lowest level | + | - | - | |
-| `bulleted_list_item` | Text Block with bullet | + | - | + | |
-| `numbered_list_item` | Text Block with number | + | - | + | |
+| `paragraph` | Simple Block with text | + | + | + |  |
+| `heading_1` | Heading Block with text highest level | + | - | - |  |
+| `heading_2` | Heading Block with text medium level | + | - | - |  |
+| `heading_3` | Heading Block with text lowest level | + | - | - |  |
+| `bulleted_list_item` | Text Block with bullet | + | - | + |  |
+| `numbered_list_item` | Text Block with number | + | - | + |  |
 | `to_do` | Text Block with checkbox | + | + | + | `checked: bool` |
-| `toggle` | Text Block with toggle to children blocks | + | - | + | |
+| `toggle` | Text Block with toggle to children blocks | + | - | + |  |
 | `code` | Text Block with code style | + | + | + | `language: str`, `caption: RichTextArray` |
-| `child_page` | Page inside | + | - | + | |
-| `child_database` | Database inside | + | - | + | |
-| `embed` |  | - | - | - | |
-| `image` |  | - | - | - | |
-| `video` |  | - | - | - | |
-| `file` |  | - | - | - | |
-| `pdf` |  | - | - | - | |
+| `child_page` | Page inside | + | - | + |  |
+| `child_database` | Database inside | + | - | + |  |
+| `embed` |  | - | - | - |  |
+| `image` |  | - | - | - |  |
+| `video` |  | - | - | - |  |
+| `file` |  | - | - | - |  |
+| `pdf` |  | - | - | - |  |
 | `bookmark` | Block for URL Link | + | - | - | `caption: RichTextArray` |
 | `callout` | Highlighted footnote text Block | + | - | + | `icon: dict` |
-| `quote` | Text Block with quote style | + | - | + | |
-| `equation` | KaTeX compatible text Block | + | - | - | |
-| `divider` | Simple line to divide the page | + | - | - | |
-| `table_of_contents` | Block with content structure in the page | - | - | - | |
-| `column` |  | - | - | + | |
-| `column_list` |  | - | - | - | |
-| `link_preview` |  Same as `bookmark` | - | - | - | |
-| `synced_block` | Block for synced content aka parent | - | - | + | |
-| `template` | Template Block title | - | - | + | |
-| `link_to_page` | Block with link to particular page `@...` | - | - | - | |
-| `table` | Table Block with some attrs | - | - | + | |
-| `table_row` | Children Blocks with table row content | - | - | - | |
-| `breadcrumb` | Empty Block actually | + | - | - | |
-| `unsupported` | Blocks unsupported by API | + | - | - | |
+| `quote` | Text Block with quote style | + | - | + |  |
+| `equation` | KaTeX compatible text Block | + | - | - |  |
+| `divider` | Simple line to divide the page | + | - | - |  |
+| `table_of_contents` | Block with content structure in the page | - | - | - |  |
+| `column` |  | - | - | + |  |
+| `column_list` |  | - | - | - |  |
+| `link_preview` |  Same as `bookmark` | - | - | - |  |
+| `synced_block` | Block for synced content aka parent | - | - | + |  |
+| `template` | Template Block title | - | - | + |  |
+| `link_to_page` | Block with link to particular page `@...` | - | - | - |  |
+| `table` | Table Block with some attrs | - | - | + |  |
+| `table_row` | Children Blocks with table row content | - | - | - |  |
+| `breadcrumb` | Empty Block actually | + | - | - |  |
+| `unsupported` | Blocks unsupported by API | + | - | - |  |
 
 API converts **toggle heading** Block to simple heading Block.
 
