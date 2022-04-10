@@ -96,7 +96,7 @@ Extension attributes are listed below in support matrix:
 | `numbered_list_item` | Text Block with number | + | - | + | |
 | `to_do` | Text Block with checkbox | + | + | + | `checked: bool` |
 | `toggle` | Text Block with toggle to children blocks | + | - | + | |
-| `code` | Text Block with code style | + | + | + | `language: str` |
+| `code` | Text Block with code style | + | + | + | `language: str`, `caption: RichTextArray` |
 | `child_page` | Page inside | + | - | + | |
 | `child_database` | Database inside | + | - | + | |
 | `embed` |  | - | - | - | |

@@ -90,6 +90,12 @@ class RichTextArray(MutableSequence):
     def __bool__(self):
         return any(map(bool, self.array))
 
+    def __add__(self, another: Union[RichTextArray, str]):
+        if isinstance(another, str):
+            another = RichTextArray.create(another)
+        self.array.extend(another)
+        return self
+
     def get(self) -> List[Dict[str, Any]]:
         return [item.get() for item in self]
 
@@ -549,8 +555,10 @@ class Block(Model):
             # Paragraph Block does not contain `children` attr (watch Docs)
 
         elif "heading" in self.type:
-            self.text = RichTextArray(kwargs[self.type].get("rich_text"))
-            # todo add `#`*level before the text
+            indent = self.type.split("_")[-1]
+            indent_num = int(indent) if indent.isdigit() else 0
+            prefix = "#" * indent_num + " "
+            self.text = RichTextArray.create(prefix) + RichTextArray(kwargs[self.type].get("rich_text"))
 
         elif self.type == "callout":
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
@@ -558,40 +566,43 @@ class Block(Model):
             # Callout Block does not contain `children` attr (watch Docs)
 
         elif self.type == "quote":
-            self.text = RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create("| ") + RichTextArray(kwargs[self.type].get("rich_text"))
             # Quote Block does not contain `children` attr (watch Docs)
-            # todo add `|` before the text
 
         elif "list_item" in self.type:
-            self.text = RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create("- ") + RichTextArray(kwargs[self.type].get("rich_text"))
             # Block does not contain `children` attr (watch Docs)
-            # todo add `-` before the text
             # Numbers does not support cause of lack of relativity
 
         elif self.type == "to_do":
-            self.text = RichTextArray(kwargs[self.type].get("rich_text"))
             self.checked: bool = kwargs[self.type].get("checked")
+            prefix = "[x] " if self.checked else "[ ] "
+            self.text = RichTextArray.create(prefix) + RichTextArray(kwargs[self.type].get("rich_text"))
             # To-do Block does not contain `children` attr (watch Docs)
 
         elif self.type == "toggle":
-            self.text = RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create("> ") + RichTextArray(kwargs[self.type].get("rich_text"))
             # Toggle Block does not contain `children` attr (watch Docs)
 
         elif self.type == "code":
-            self.text = RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create("```\n") + RichTextArray(kwargs[self.type].get("rich_text")) + "\n```"
             self.language: str = kwargs[self.type].get("language")
-            # todo add ``` to the text
-            # todo add `caption`
+            self.caption = RichTextArray(kwargs[self.type].get("caption"))
 
-        # when the block is page, parent will be the page object
+        # when the block is child_page, parent will be the page object
+        # when the block is child_database, children will be the database object
         elif "child" in self.type:
             self.text = kwargs[self.type].get("title")
             if self.type == "child_page":
                 self.parent = LinkTo(type="page", page=self.id)
+            elif self.type == "child_database":
+                self.children = LinkTo.create(database_id=self.id)
+                if not self.text:
+                    self.text = repr(self.children)
             # page self.has_children is correct. checked.
             # database self.has_children is false.
-            # database with custom source has no title!
-            # todo if child database - can we set self.parent?
+            # database with custom source had no title!
+            # if child database - can we set self.parent? - well no.
 
         elif self.type in ["embed", "image", "video", "file", "pdf", "breadcrumb"]:
             self.text = self.type

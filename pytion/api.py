@@ -106,6 +106,7 @@ class Element(object):
         Paragraph
         some text
         """
+        # todo when database is children of the block
         if self.name != "blocks":
             logger.warning("Only `blocks` can have children")
             return None
