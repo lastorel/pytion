@@ -39,6 +39,7 @@ class RichText(object):
                     "end": Model.format_iso_time(kwargs[self.type][subtype].get("end"))
                 }
             elif subtype == "link_preview":
+                self.plain_text = f"<{self.plain_text}>"
                 self.data: Dict = kwargs[self.type]
         else:
             self.data: Dict = kwargs[self.type]
@@ -604,12 +605,23 @@ class Block(Model):
             # database with custom source had no title!
             # if child database - can we set self.parent? - well no.
 
-        elif self.type in ["embed", "image", "video", "file", "pdf", "breadcrumb"]:
+        # hello, markdown
+        elif self.type == "embed":
+            self.caption = RichTextArray(kwargs[self.type].get("caption"))
+            if self.caption:
+                self.text: str = f'[{self.caption}]({kwargs[self.type].get("url")})'
+            else:
+                self.text: str = f'<{kwargs[self.type]["url"]}>' if kwargs[self.type].get("url") else "*Empty embed*"
+
+        elif self.type in ["image", "video", "file", "pdf", "breadcrumb"]:
             self.text = self.type
 
         elif self.type == "bookmark":
-            self.text: str = kwargs[self.type].get("url")
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
+            if self.caption:
+                self.text: str = f'[{self.caption}]({kwargs[self.type].get("url")})'
+            else:
+                self.text: str = f'<{kwargs[self.type]["url"]}>' if kwargs[self.type].get("url") else "*Empty bookmark*"
 
         elif self.type == "equation":
             self.text: str = kwargs[self.type].get("expression")

@@ -1,4 +1,5 @@
 # pytion
+
 Unofficial Python client for official Notion API (for internal integrations only)
 
 Supports Notion API version = **"2022-02-22"**
@@ -6,6 +7,7 @@ Supports Notion API version = **"2022-02-22"**
 Works with **Python 3.8+**
 
 ## Quick start
+
 There is no package yet. Clone repo.
 
 Create new integration and get your Notion API Token at notion.so -> /my-integrations
@@ -15,6 +17,7 @@ Invite your new integration 'manager' to your Notion workspace or particular pag
 `from pytion import Notion; no = Notion(token=SOME_TOKEN)`
 
 Or put your token for Notion API into file `token` at script directory and use simple `no = Notion()`
+
 ```
 from pytion import Notion
 no = Notion(token=SOME_TOKEN)
@@ -22,6 +25,7 @@ page = no.pages.get("PAGE ID")
 database = no.databases.get("Database ID")
 pages = database.db_filter(property_name="Done", property_type="checkbox", value=False, descending="title")
 ```
+
 ```
 In [12]: no = Notion(token=SOME_TOKEN)
 
@@ -38,8 +42,11 @@ Paragraph
         block inside block
 some text
 ```
+
 ## Available methods
+
 ### pytion.api.Element
+
 `.get(id_)` - Get Element by ID.
 
 `.get_parent(id_)` - Get parent object of current object if possible.
@@ -69,17 +76,24 @@ some text
 `.from_linkto(linkto)` - Creates new Element object based on LinkTo information.
 
 `.from_object(model)` - Creates new Element object from Page, Block or Database object.
+
 Usable while Element object contains an Array.
 
 More details and examples of this methods you can see into func descriptions.
+
 ### pytion.models.*
+
 There are user classmethods for models:
+
 `RichTextArray.create()`, `Property.create()`, `PropertyValue.create()`, `Database.create()`, `Page.create()`, `Block.create()`, `LinkTo.create()`, `User.create()`
+
 ### Supported block types
+
 At present the API only supports the block types which are listed in the reference below. Any unsupported block types will continue to appear in the structure, but only contain a `type` set to `"unsupported"`.
 Colors are not yet supported.
 
 Every Block has mandatory attributes and extension attributes. There are mandatory:
+
 - `id: str` - UUID-64 without hyphens
 - `object: str` - always `"block"` (from API)
 - `created_time: datetime` - from API
@@ -106,7 +120,7 @@ Extension attributes are listed below in support matrix:
 | `code` | Text Block with code style | + | + | + | `language: str`, `caption: RichTextArray` |
 | `child_page` | Page inside | + | - | + |  |
 | `child_database` | Database inside | + | - | + |  |
-| `embed` |  | - | - | - |  |
+| `embed` | Embed online content | + | - | - |  |
 | `image` |  | - | - | - |  |
 | `video` |  | - | - | - |  |
 | `file` |  | - | - | - |  |
@@ -131,7 +145,9 @@ Extension attributes are listed below in support matrix:
 API converts **toggle heading** Block to simple heading Block.
 
 ## Logging
+
 Logging is muted by default. To enable to stdout and/or to file:
+
 ```
 from pytion import setup_logging
 
