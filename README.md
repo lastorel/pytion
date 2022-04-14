@@ -120,7 +120,7 @@ Extension attributes are listed below in support matrix:
 | `code` | Text Block with code style | + | + | + | `language: str`, `caption: RichTextArray` |
 | `child_page` | Page inside | + | - | + |  |
 | `child_database` | Database inside | + | - | + |  |
-| `embed` | Embed online content | + | - | - |  |
+| `embed` | Embed online content | + | - | - | `caption: RichTextArray` |
 | `image` |  | - | - | - |  |
 | `video` |  | - | - | - |  |
 | `file` |  | - | - | - |  |
