@@ -100,11 +100,14 @@ class Element(object):
         logger.warning(f"Parent object can not be found")
         return None
 
-    def get_block_children(self, id_: Optional[str] = None, limit: int = 0) -> Optional[Element]:
+    def get_block_children(
+            self, id_: Optional[str] = None, block: Optional[Block] = None, limit: int = 0
+    ) -> Optional[Element]:
         """
         Get children Block objects of current Block object (tabulated texts) if exist (else None)
 
         :param id_:
+        :param block: you can provide a Block object instead to get his children
         :param limit:   0 < int < 100 - max number of items to be returned (0 = return all)
         :return:        `Element.obj` will be BlockArray object even nothing is found
 
@@ -118,15 +121,19 @@ class Element(object):
         Heading 2 level
         Paragraph
         some text
+
+        BlockArray or Database object expected.
         """
-        # todo when database is children of the block
         if self.name != "blocks":
             logger.warning("Only `blocks` can have children")
             return None
         if isinstance(id_, str) and "-" in id_:
             id_ = id_.replace("-", "")
-        if self.obj:
-            id_ = self.obj.id
+        obj = block if block else self.obj
+        if obj:
+            id_ = obj.id
+            if obj.type == "child_database":
+                return self.from_linkto(obj.children)
         child = self.api.session.method(
             method="get", path=self.name, id_=id_, after_path="children", limit=limit
         )
@@ -137,12 +144,14 @@ class Element(object):
         return Element(api=self.api, name="blocks", obj=BlockArray(child["results"]))
 
     def get_block_children_recursive(
-        self, id_: Optional[str] = None, max_depth: int = 10, _cur_depth: int = 0, limit: int = 0, force: bool = False
+        self, id_: Optional[str] = None, max_depth: int = 10, block: Optional[Block] = None,
+        _cur_depth: int = 0, limit: int = 0, force: bool = False
     ) -> Optional[Element]:
         """
         Get children Block objects of current Block object (tabulated texts) if exist (else None) recursive
 
         :param id_:
+        :param block:       you can provide a Block object instead to get his children
         :param max_depth:   how deep use the recursion (block inside block inside block etc.)
         :param limit:       0 < int < 100 - max number of items to be returned (0 = return all)
         :param force:       get blocks in subpages too
@@ -159,8 +168,11 @@ class Element(object):
             return None
         if isinstance(id_, str) and "-" in id_:
             id_ = id_.replace("-", "")
-        if self.obj:
-            id_ = self.obj.id
+        obj = block if block else self.obj
+        if obj:
+            id_ = obj.id
+            if obj.type == "child_database":
+                return self.from_linkto(obj.children)
         child = self.api.session.method(
             method="get", path=self.name, id_=id_, after_path="children", limit=limit
         )
