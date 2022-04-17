@@ -48,7 +48,7 @@ class Element(object):
         self.obj = obj
         logger.debug(f"Element {self!r} created")
 
-    def get(self, id_: str, _after_path: str = None) -> Element:
+    def get(self, id_: str, _after_path: str = None, limit: int = 0) -> Element:
         """
         Get Element by ID.
         .query.RequestError exception if not found
@@ -64,9 +64,11 @@ class Element(object):
         if "-" in id_:
             id_ = id_.replace("-", "")
         if not _after_path:
-            raw_obj = self.api.session.method(method="get", path=self.name, id_=id_)
+            raw_obj = self.api.session.method(method="get", path=self.name, id_=id_, limit=limit)
         else:
-            raw_obj = self.api.session.method(method="get", path=self.name, id_=id_, after_path=_after_path)
+            raw_obj = self.api.session.method(
+                method="get", path=self.name, id_=id_, after_path=_after_path, limit=limit
+            )
         if raw_obj["object"] == "list":
             if self.name == "pages":
                 self.obj = PageArray(raw_obj["results"])
@@ -95,8 +97,7 @@ class Element(object):
         if not self.obj:
             self.get(id_)
         if getattr(self.obj, "parent"):
-            new_obj = Element(api=self.api, name=self.obj.parent.uri)
-            return new_obj.get(self.obj.parent.id)
+            return self.from_linkto(self.obj.parent)
         logger.warning(f"Parent object can not be found")
         return None
 
@@ -124,16 +125,14 @@ class Element(object):
 
         BlockArray or Database object expected.
         """
-        if self.name != "blocks":
-            logger.warning("Only `blocks` can have children")
+        if self.name not in ("blocks", "pages"):
+            logger.warning("Only `blocks` or `pages` can have children")
             return None
         if isinstance(id_, str) and "-" in id_:
             id_ = id_.replace("-", "")
         obj = block if block else self.obj
         if obj:
-            id_ = obj.id
-            if obj.type == "child_database":
-                return self.from_linkto(obj.children)
+            return self.from_linkto(obj.children, limit=limit)
         child = self.api.session.method(
             method="get", path=self.name, id_=id_, after_path="children", limit=limit
         )
@@ -163,18 +162,19 @@ class Element(object):
             block inside block
         some text
         """
-        if self.name != "blocks":
-            logger.warning("Only `blocks` can have children")
+        if self.name not in ("blocks", "pages"):
+            logger.warning("Only `blocks` or `pages` can have children")
             return None
         if isinstance(id_, str) and "-" in id_:
             id_ = id_.replace("-", "")
         obj = block if block else self.obj
         if obj:
             id_ = obj.id
-            if obj.type == "child_database":
+            if isinstance(obj, Block) and obj.type == "child_database":
                 return self.from_linkto(obj.children)
+        name = "blocks"
         child = self.api.session.method(
-            method="get", path=self.name, id_=id_, after_path="children", limit=limit
+            method="get", path=name, id_=id_, after_path="children", limit=limit
         )
         ba = BlockArray([])
         for b in child["results"]:
@@ -493,12 +493,15 @@ class Element(object):
         )
         return Element(api=self.api, name="blocks", obj=BlockArray(new_blocks["results"]))
 
-    def from_linkto(self, linkto: LinkTo) -> Optional[Element]:
+    def from_linkto(self, linkto: LinkTo, limit: int = 0) -> Optional[Element]:
+        if not linkto:
+            logger.error("LinkTo must be provided!")
+            return None
         if not linkto.uri:
             logger.error("LinkTo.uri must be provided!")
             return None
         new_element = Element(self.api, name=linkto.uri)
-        return new_element.get(linkto.id, getattr(linkto, "after_path", None))
+        return new_element.get(linkto.id, getattr(linkto, "after_path", None), limit)
 
     def from_object(self, model: Union[Database, Page, Block]):
         return Element(self.api, model.path, model)

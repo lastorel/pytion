@@ -484,7 +484,7 @@ class Page(Model):
         self.parent = kwargs["parent"] if isinstance(kwargs.get("parent"), LinkTo) else LinkTo(**kwargs["parent"])
         self.archived: bool = kwargs.get("archived")
         self.url: str = kwargs.get("url")
-        self.children = kwargs.get("children")
+        self.children = LinkTo(block=self)
         self.properties = {
             name: (PropertyValue(data, name) if not isinstance(data, PropertyValue) else data)
             for name, data in kwargs["properties"].items()
@@ -839,7 +839,7 @@ class LinkTo(object):
     """
 
     def __init__(
-            self, block: Optional[Block] = None, from_object: Optional[Block, Page, Database] = None, **kwargs
+            self, block: Optional[Model] = None, from_object: Optional[Block, Page, Database] = None, **kwargs
     ):
         """
         Creates LinkTo object from API dict
@@ -862,8 +862,9 @@ class LinkTo(object):
             elif isinstance(from_object, Database):
                 self.type = "database_id"
             elif isinstance(from_object, Block):
-                # `block_id` does not exist in API schema yet
                 self.type = "block_id"
+            elif isinstance(from_object, User):
+                self.type = "user_id"
         else:
             self.type: str = kwargs.get("type")
             self.id: str = kwargs.get(self.type) if kwargs.get(self.type) else kwargs.get("id")
@@ -877,6 +878,8 @@ class LinkTo(object):
                 self.uri = "pages"
             elif self.type == "block_id":
                 self.uri = "blocks"
+            elif self.type == "user_id":
+                self.uri = "users"
             else:
                 self.uri = None
 
