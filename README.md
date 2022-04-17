@@ -121,10 +121,10 @@ Extension attributes are listed below in support matrix:
 | `child_page` | Page inside | + | - | + |  |
 | `child_database` | Database inside | + | - | + |  |
 | `embed` | Embed online content | + | - | - | `caption: RichTextArray` |
-| `image` |  | - | - | - |  |
-| `video` |  | - | - | - |  |
-| `file` |  | - | - | - |  |
-| `pdf` |  | - | - | - |  |
+| `image` | Embed image content | + | - | - | `caption: RichTextArray`, `expiry_time: datetime` |
+| `video` | Embed video content | + | - | - | `caption: RichTextArray`, `expiry_time: datetime` |
+| `file` | Embed file content | + | - | - | `caption: RichTextArray`, `expiry_time: datetime` |
+| `pdf` | Embed pdf content | + | - | - | `caption: RichTextArray`, `expiry_time: datetime` |
 | `bookmark` | Block for URL Link | + | - | - | `caption: RichTextArray` |
 | `callout` | Highlighted footnote text Block | + | - | + | `icon: dict` |
 | `quote` | Text Block with quote style | + | - | + |  |

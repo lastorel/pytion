@@ -613,8 +613,68 @@ class Block(Model):
             else:
                 self.text: str = f'<{kwargs[self.type]["url"]}>' if kwargs[self.type].get("url") else "*Empty embed*"
 
-        elif self.type in ["image", "video", "file", "pdf", "breadcrumb"]:
-            self.text = self.type
+        elif self.type == "image":
+            self.caption = RichTextArray(kwargs[self.type].get("caption"))
+            subtype = kwargs[self.type].get("type")
+            if subtype == "file":
+                self.expiry_time = Model.format_iso_time(kwargs[self.type][subtype].get("expiry_time"))
+            else:
+                self.expiry_time = None
+            if subtype in ("file", "external"):
+                if self.caption:
+                    self.text = f'[{self.caption}]({kwargs[self.type][subtype].get("url")})'
+                else:
+                    self.text = f'<{kwargs[self.type][subtype].get("url")}>'
+            else:
+                self.text = "*Unknown image type*"
+
+        elif self.type == "video":
+            self.caption = RichTextArray(kwargs[self.type].get("caption"))
+            subtype = kwargs[self.type].get("type")
+            if subtype == "file":
+                self.expiry_time = Model.format_iso_time(kwargs[self.type][subtype].get("expiry_time"))
+            else:
+                self.expiry_time = None
+            if subtype in ("file", "external"):
+                if self.caption:
+                    self.text = f'[{self.caption}]({kwargs[self.type][subtype].get("url")})'
+                else:
+                    self.text = f'<{kwargs[self.type][subtype].get("url")}>'
+            else:
+                self.text = "*Unknown video type*"
+
+        elif self.type == "file":
+            self.caption = RichTextArray(kwargs[self.type].get("caption"))
+            subtype = kwargs[self.type].get("type")
+            if subtype == "file":
+                self.expiry_time = Model.format_iso_time(kwargs[self.type][subtype].get("expiry_time"))
+            else:
+                self.expiry_time = None
+            if subtype in ("file", "external"):
+                if self.caption:
+                    self.text = f'[{self.caption}]({kwargs[self.type][subtype].get("url")})'
+                else:
+                    self.text = f'<{kwargs[self.type][subtype].get("url")}>'
+            else:
+                self.text = "*Unknown file type*"
+
+        elif self.type == "pdf":
+            self.caption = RichTextArray(kwargs[self.type].get("caption"))
+            subtype = kwargs[self.type].get("type")
+            if subtype == "file":
+                self.expiry_time = Model.format_iso_time(kwargs[self.type][subtype].get("expiry_time"))
+            else:
+                self.expiry_time = None
+            if subtype in ("file", "external"):
+                if self.caption:
+                    self.text = f'[{self.caption}]({kwargs[self.type][subtype].get("url")})'
+                else:
+                    self.text = f'<{kwargs[self.type][subtype].get("url")}>'
+            else:
+                self.text = "*Unknown pdf type*"
+
+        elif self.type == "breadcrumb":
+            self.text = "*breadcrumb block*"
 
         elif self.type == "bookmark":
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
