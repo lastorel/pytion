@@ -130,13 +130,13 @@ Extension attributes are listed below in support matrix:
 | `quote` | Text Block with quote style | + | - | + |  |
 | `equation` | KaTeX compatible text Block | + | - | - |  |
 | `divider` | Simple line to divide the page | + | - | - |  |
-| `table_of_contents` | Block with content structure in the page | - | - | - |  |
+| `table_of_contents` | Block with content structure in the page | + | - | - |  |
 | `column` |  | - | - | + |  |
 | `column_list` |  | - | - | - |  |
-| `link_preview` |  Same as `bookmark` | - | - | - |  |
-| `synced_block` | Block for synced content aka parent | - | - | + |  |
-| `template` | Template Block title | - | - | + |  |
-| `link_to_page` | Block with link to particular page `@...` | - | - | - |  |
+| `link_preview` |  Same as `bookmark` | + | - | - |  |
+| `synced_block` | Block for synced content aka parent | + | - | + | `synced_from: LinkTo` |
+| `template` | Template Block title | + | - | + |  |
+| `link_to_page` | Block with link to particular page `@...` | + | - | - | `link: LinkTo` |
 | `table` | Table Block with some attrs | - | - | + |  |
 | `table_row` | Children Blocks with table row content | - | - | - |  |
 | `breadcrumb` | Empty Block actually | + | - | - |  |

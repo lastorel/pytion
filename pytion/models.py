@@ -609,9 +609,9 @@ class Block(Model):
         elif self.type == "embed":
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
             if self.caption:
-                self.text: str = f'[{self.caption}]({kwargs[self.type].get("url")})'
+                self.text = f'[{self.caption}]({kwargs[self.type].get("url")})'
             else:
-                self.text: str = f'<{kwargs[self.type]["url"]}>' if kwargs[self.type].get("url") else "*Empty embed*"
+                self.text = f'<{kwargs[self.type]["url"]}>' if kwargs[self.type].get("url") else "*Empty embed*"
 
         elif self.type == "image":
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
@@ -679,9 +679,16 @@ class Block(Model):
         elif self.type == "bookmark":
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
             if self.caption:
-                self.text: str = f'[{self.caption}]({kwargs[self.type].get("url")})'
+                self.text = f'[{self.caption}]({kwargs[self.type].get("url")})'
             else:
-                self.text: str = f'<{kwargs[self.type]["url"]}>' if kwargs[self.type].get("url") else "*Empty bookmark*"
+                self.text = f'<{kwargs[self.type]["url"]}>' if kwargs[self.type].get("url") else "*Empty bookmark*"
+
+        elif self.type == "link_preview":
+            self.text = f'<{kwargs[self.type].get("url")}>'
+
+        elif self.type == "link_to_page":
+            self.link = LinkTo(**kwargs[self.type])
+            self.text = repr(self.link)
 
         elif self.type == "equation":
             self.text: str = kwargs[self.type].get("expression")
@@ -690,7 +697,15 @@ class Block(Model):
             self.text = "---"
 
         elif self.type == "table_of_contents":
-            self.text = self.type
+            self.text = "*Table of contents*"
+
+        elif self.type == "template":
+            self.text = RichTextArray.create("Template: ") + RichTextArray(kwargs[self.type].get("rich_text"))
+
+        elif self.type == "synced_block":
+            synced_from = kwargs[self.type].get("synced_from")
+            self.text = "*SYNCED BLOCK:*"
+            self.synced_from = LinkTo(**synced_from) if synced_from else None
 
         elif self.type == "unsupported":
             self.text = "*****"
@@ -838,6 +853,8 @@ class LinkTo(object):
             # when type is set manually
             elif self.type == "page":
                 self.uri = "pages"
+            elif self.type == "block_id":
+                self.uri = "blocks"
             else:
                 self.uri = None
 
