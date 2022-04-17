@@ -39,6 +39,7 @@ class RichText(object):
                     "end": Model.format_iso_time(kwargs[self.type][subtype].get("end"))
                 }
             elif subtype == "link_preview":
+                self.plain_text = f"<{self.plain_text}>"
                 self.data: Dict = kwargs[self.type]
         else:
             self.data: Dict = kwargs[self.type]
@@ -166,6 +167,8 @@ class Model(object):
     :param object:
     :param created_time:
     :param last_edited_time:
+    :param created_by:
+    :param last_edited_by:
     :param raw:
     """
 
@@ -174,8 +177,8 @@ class Model(object):
         self.object = kwargs.get("object")
         self.created_time = self.format_iso_time(kwargs.get("created_time"))
         self.last_edited_time = self.format_iso_time(kwargs.get("last_edited_time"))
-        self.created_by = User(**kwargs.get("created_by"))
-        self.last_edited_by = User(**kwargs.get("last_edited_by"))
+        self.created_by = User(**kwargs["created_by"]) if kwargs.get("created_by") else None
+        self.last_edited_by = User(**kwargs["last_edited_by"]) if kwargs.get("last_edited_by") else None
         self.raw = kwargs
 
     @classmethod
@@ -548,6 +551,10 @@ class Block(Model):
                 self.checked = kwargs["checked"]
             if "language" in kwargs:
                 self.language = kwargs["language"]
+            if "caption" in kwargs:
+                self.caption = kwargs["caption"]
+                if isinstance(self.caption, str):
+                    self.caption = RichTextArray.create(self.caption)
             return
 
         if self.type == "paragraph":
@@ -604,12 +611,91 @@ class Block(Model):
             # database with custom source had no title!
             # if child database - can we set self.parent? - well no.
 
-        elif self.type in ["embed", "image", "video", "file", "pdf", "breadcrumb"]:
-            self.text = self.type
+        # hello, markdown
+        elif self.type == "embed":
+            self.caption = RichTextArray(kwargs[self.type].get("caption"))
+            if self.caption:
+                self.text = f'[{self.caption}]({kwargs[self.type].get("url")})'
+            else:
+                self.text = f'<{kwargs[self.type]["url"]}>' if kwargs[self.type].get("url") else "*Empty embed*"
+
+        elif self.type == "image":
+            self.caption = RichTextArray(kwargs[self.type].get("caption"))
+            subtype = kwargs[self.type].get("type")
+            if subtype == "file":
+                # The file S3 URL will be valid for 1 hour
+                self.expiry_time = Model.format_iso_time(kwargs[self.type][subtype].get("expiry_time"))
+            else:
+                self.expiry_time = None
+            if subtype in ("file", "external"):
+                if self.caption:
+                    self.text = f'[{self.caption}]({kwargs[self.type][subtype].get("url")})'
+                else:
+                    self.text = f'<{kwargs[self.type][subtype].get("url")}>'
+            else:
+                self.text = "*Unknown image type*"
+
+        elif self.type == "video":
+            self.caption = RichTextArray(kwargs[self.type].get("caption"))
+            subtype = kwargs[self.type].get("type")
+            if subtype == "file":
+                self.expiry_time = Model.format_iso_time(kwargs[self.type][subtype].get("expiry_time"))
+            else:
+                self.expiry_time = None
+            if subtype in ("file", "external"):
+                if self.caption:
+                    self.text = f'[{self.caption}]({kwargs[self.type][subtype].get("url")})'
+                else:
+                    self.text = f'<{kwargs[self.type][subtype].get("url")}>'
+            else:
+                self.text = "*Unknown video type*"
+
+        elif self.type == "file":
+            self.caption = RichTextArray(kwargs[self.type].get("caption"))
+            subtype = kwargs[self.type].get("type")
+            if subtype == "file":
+                self.expiry_time = Model.format_iso_time(kwargs[self.type][subtype].get("expiry_time"))
+            else:
+                self.expiry_time = None
+            if subtype in ("file", "external"):
+                if self.caption:
+                    self.text = f'[{self.caption}]({kwargs[self.type][subtype].get("url")})'
+                else:
+                    self.text = f'<{kwargs[self.type][subtype].get("url")}>'
+            else:
+                self.text = "*Unknown file type*"
+
+        elif self.type == "pdf":
+            self.caption = RichTextArray(kwargs[self.type].get("caption"))
+            subtype = kwargs[self.type].get("type")
+            if subtype == "file":
+                self.expiry_time = Model.format_iso_time(kwargs[self.type][subtype].get("expiry_time"))
+            else:
+                self.expiry_time = None
+            if subtype in ("file", "external"):
+                if self.caption:
+                    self.text = f'[{self.caption}]({kwargs[self.type][subtype].get("url")})'
+                else:
+                    self.text = f'<{kwargs[self.type][subtype].get("url")}>'
+            else:
+                self.text = "*Unknown pdf type*"
+
+        elif self.type == "breadcrumb":
+            self.text = "*breadcrumb block*"
 
         elif self.type == "bookmark":
-            self.text: str = kwargs[self.type].get("url")
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
+            if self.caption:
+                self.text = f'[{self.caption}]({kwargs[self.type].get("url")})'
+            else:
+                self.text = f'<{kwargs[self.type]["url"]}>' if kwargs[self.type].get("url") else "*Empty bookmark*"
+
+        elif self.type == "link_preview":
+            self.text = f'<{kwargs[self.type].get("url")}>'
+
+        elif self.type == "link_to_page":
+            self.link = LinkTo(**kwargs[self.type])
+            self.text = repr(self.link)
 
         elif self.type == "equation":
             self.text: str = kwargs[self.type].get("expression")
@@ -618,7 +704,25 @@ class Block(Model):
             self.text = "---"
 
         elif self.type == "table_of_contents":
-            self.text = self.type
+            self.text = "*Table of contents*"
+
+        elif self.type == "template":
+            self.text = RichTextArray.create("Template: ") + RichTextArray(kwargs[self.type].get("rich_text"))
+
+        elif self.type == "synced_block":
+            synced_from = kwargs[self.type].get("synced_from")
+            self.text = "*SYNCED BLOCK:*"
+            self.synced_from = LinkTo(**synced_from) if synced_from else None
+
+        elif self.type == "table":
+            self.table_width: int = kwargs[self.type].get("table_width")
+            self.text = f"*Table {self.table_width}xN:*"
+
+        elif self.type == "table_row":
+            cells = kwargs[self.type].get("cells")
+            self.text = RichTextArray.create("|")
+            for cell in cells:
+                self.text += RichTextArray(cell) + "|"
 
         elif self.type == "unsupported":
             self.text = "*****"
@@ -644,6 +748,8 @@ class Block(Model):
                 new_dict[self.type]["checked"] = self.checked
             if self.type == "code":
                 new_dict[self.type]["language"] = getattr(self, "language", "plain text")
+                if hasattr(self, "caption"):
+                    new_dict[self.type]["caption"] = self.caption.get()
             if with_object_type:
                 new_dict["object"] = "block"
                 new_dict["type"] = self.type
@@ -655,7 +761,10 @@ class Block(Model):
         """
         :param text:   Block content
         :param type_:  Block types (API)
-        :param kwargs: `checked` for To-Do and `language` for Code supported
+        :param kwargs:
+            :kwargs param checked:  bool for to_do
+            :kwargs param language: str for code
+            :kwargs param caption:  str or RichTextArray for code
         :return:
         """
         new_dict = {
@@ -766,6 +875,8 @@ class LinkTo(object):
             # when type is set manually
             elif self.type == "page":
                 self.uri = "pages"
+            elif self.type == "block_id":
+                self.uri = "blocks"
             else:
                 self.uri = None
 

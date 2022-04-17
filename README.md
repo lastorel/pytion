@@ -1,4 +1,5 @@
 # pytion
+
 Unofficial Python client for official Notion API (for internal integrations only)
 
 Supports Notion API version = **"2022-02-22"**
@@ -6,6 +7,7 @@ Supports Notion API version = **"2022-02-22"**
 Works with **Python 3.8+**
 
 ## Quick start
+
 There is no package yet. Clone repo.
 
 Create new integration and get your Notion API Token at notion.so -> /my-integrations
@@ -15,6 +17,7 @@ Invite your new integration 'manager' to your Notion workspace or particular pag
 `from pytion import Notion; no = Notion(token=SOME_TOKEN)`
 
 Or put your token for Notion API into file `token` at script directory and use simple `no = Notion()`
+
 ```
 from pytion import Notion
 no = Notion(token=SOME_TOKEN)
@@ -22,6 +25,7 @@ page = no.pages.get("PAGE ID")
 database = no.databases.get("Database ID")
 pages = database.db_filter(property_name="Done", property_type="checkbox", value=False, descending="title")
 ```
+
 ```
 In [12]: no = Notion(token=SOME_TOKEN)
 
@@ -38,8 +42,11 @@ Paragraph
         block inside block
 some text
 ```
+
 ## Available methods
+
 ### pytion.api.Element
+
 `.get(id_)` - Get Element by ID.
 
 `.get_parent(id_)` - Get parent object of current object if possible.
@@ -69,17 +76,24 @@ some text
 `.from_linkto(linkto)` - Creates new Element object based on LinkTo information.
 
 `.from_object(model)` - Creates new Element object from Page, Block or Database object.
+
 Usable while Element object contains an Array.
 
 More details and examples of this methods you can see into func descriptions.
+
 ### pytion.models.*
+
 There are user classmethods for models:
+
 `RichTextArray.create()`, `Property.create()`, `PropertyValue.create()`, `Database.create()`, `Page.create()`, `Block.create()`, `LinkTo.create()`, `User.create()`
+
 ### Supported block types
+
 At present the API only supports the block types which are listed in the reference below. Any unsupported block types will continue to appear in the structure, but only contain a `type` set to `"unsupported"`.
 Colors are not yet supported.
 
 Every Block has mandatory attributes and extension attributes. There are mandatory:
+
 - `id: str` - UUID-64 without hyphens
 - `object: str` - always `"block"` (from API)
 - `created_time: datetime` - from API
@@ -106,32 +120,70 @@ Extension attributes are listed below in support matrix:
 | `code` | Text Block with code style | + | + | + | `language: str`, `caption: RichTextArray` |
 | `child_page` | Page inside | + | - | + |  |
 | `child_database` | Database inside | + | - | + |  |
-| `embed` |  | - | - | - |  |
-| `image` |  | - | - | - |  |
-| `video` |  | - | - | - |  |
-| `file` |  | - | - | - |  |
-| `pdf` |  | - | - | - |  |
+| `embed` | Embed online content | + | - | - | `caption: RichTextArray` |
+| `image` | Embed image content | + | - | - | `caption: RichTextArray`, `expiry_time: datetime` |
+| `video` | Embed video content | + | - | - | `caption: RichTextArray`, `expiry_time: datetime` |
+| `file` | Embed file content | + | - | - | `caption: RichTextArray`, `expiry_time: datetime` |
+| `pdf` | Embed pdf content | + | - | - | `caption: RichTextArray`, `expiry_time: datetime` |
 | `bookmark` | Block for URL Link | + | - | - | `caption: RichTextArray` |
 | `callout` | Highlighted footnote text Block | + | - | + | `icon: dict` |
 | `quote` | Text Block with quote style | + | - | + |  |
 | `equation` | KaTeX compatible text Block | + | - | - |  |
 | `divider` | Simple line to divide the page | + | - | - |  |
-| `table_of_contents` | Block with content structure in the page | - | - | - |  |
+| `table_of_contents` | Block with content structure in the page | + | - | - |  |
 | `column` |  | - | - | + |  |
 | `column_list` |  | - | - | - |  |
-| `link_preview` |  Same as `bookmark` | - | - | - |  |
-| `synced_block` | Block for synced content aka parent | - | - | + |  |
-| `template` | Template Block title | - | - | + |  |
-| `link_to_page` | Block with link to particular page `@...` | - | - | - |  |
-| `table` | Table Block with some attrs | - | - | + |  |
-| `table_row` | Children Blocks with table row content | - | - | - |  |
+| `link_preview` |  Same as `bookmark` | + | - | - |  |
+| `synced_block` | Block for synced content aka parent | + | - | + | `synced_from: LinkTo` |
+| `template` | Template Block title | + | - | + |  |
+| `link_to_page` | Block with link to particular page `@...` | + | - | - | `link: LinkTo` |
+| `table` | Table Block with some attrs | + | - | + | `table_width: int` |
+| `table_row` | Children Blocks with table row content | + | - | - |  |
 | `breadcrumb` | Empty Block actually | + | - | - |  |
 | `unsupported` | Blocks unsupported by API | + | - | - |  |
 
 API converts **toggle heading** Block to simple heading Block.
 
+### Block creating examples
+
+Create `paragraph` block object and add it to Notion:
+
+```
+from pytion.models import Block
+my_text_block = Block.create("Hello World!")
+my_text_block = Block.create(text="Hello World!", type_="paragraph")  # the same
+
+# indented append my block to other known block:
+no.blocks.block_append("5f60073a9dda4a9c93a212a74a107359", block=my_text_block)
+
+# append my block to a known page (in the end)
+no.blocks.block_append("9796f2525016128d9af4bf12b236b555", block=my_text_block)  # the same operation actually
+
+# another way to append:
+my_page = no.pages.get("9796f2525016128d9af4bf12b236b555")
+my_page.block_append(block=my_text_block)
+```
+
+Create `to_do` block object:
+
+```
+from pytion.models import Block
+my_todo_block = Block.create("create readme documentation", type_="to_do")
+my_todo_block2 = Block.create("add 'create' method", type_="to_do", checked=True)
+```
+
+Create `code` block object:
+
+```
+from pytion.models import Block
+my_code_block = Block.create("code example here", type_="code", language="javascript")
+my_code_block2 = Block.create("another code example", type_="code", caption="it will be plain text code block with caption")
+```
+
 ## Logging
+
 Logging is muted by default. To enable to stdout and/or to file:
+
 ```
 from pytion import setup_logging
 
