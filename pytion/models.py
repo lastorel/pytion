@@ -167,6 +167,8 @@ class Model(object):
     :param object:
     :param created_time:
     :param last_edited_time:
+    :param created_by:
+    :param last_edited_by:
     :param raw:
     """
 
@@ -175,8 +177,8 @@ class Model(object):
         self.object = kwargs.get("object")
         self.created_time = self.format_iso_time(kwargs.get("created_time"))
         self.last_edited_time = self.format_iso_time(kwargs.get("last_edited_time"))
-        self.created_by = User(**kwargs.get("created_by"))
-        self.last_edited_by = User(**kwargs.get("last_edited_by"))
+        self.created_by = User(**kwargs["created_by"]) if kwargs.get("created_by") else None
+        self.last_edited_by = User(**kwargs["last_edited_by"]) if kwargs.get("last_edited_by") else None
         self.raw = kwargs
 
     @classmethod
@@ -549,6 +551,10 @@ class Block(Model):
                 self.checked = kwargs["checked"]
             if "language" in kwargs:
                 self.language = kwargs["language"]
+            if "caption" in kwargs:
+                self.caption = kwargs["caption"]
+                if isinstance(self.caption, str):
+                    self.caption = RichTextArray.create(self.caption)
             return
 
         if self.type == "paragraph":
@@ -617,6 +623,7 @@ class Block(Model):
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
             subtype = kwargs[self.type].get("type")
             if subtype == "file":
+                # The file S3 URL will be valid for 1 hour
                 self.expiry_time = Model.format_iso_time(kwargs[self.type][subtype].get("expiry_time"))
             else:
                 self.expiry_time = None
@@ -707,6 +714,16 @@ class Block(Model):
             self.text = "*SYNCED BLOCK:*"
             self.synced_from = LinkTo(**synced_from) if synced_from else None
 
+        elif self.type == "table":
+            self.table_width: int = kwargs[self.type].get("table_width")
+            self.text = f"*Table {self.table_width}xN:*"
+
+        elif self.type == "table_row":
+            cells = kwargs[self.type].get("cells")
+            self.text = RichTextArray.create("|")
+            for cell in cells:
+                self.text += RichTextArray(cell) + "|"
+
         elif self.type == "unsupported":
             self.text = "*****"
 
@@ -731,6 +748,8 @@ class Block(Model):
                 new_dict[self.type]["checked"] = self.checked
             if self.type == "code":
                 new_dict[self.type]["language"] = getattr(self, "language", "plain text")
+                if hasattr(self, "caption"):
+                    new_dict[self.type]["caption"] = self.caption.get()
             if with_object_type:
                 new_dict["object"] = "block"
                 new_dict["type"] = self.type
@@ -742,7 +761,10 @@ class Block(Model):
         """
         :param text:   Block content
         :param type_:  Block types (API)
-        :param kwargs: `checked` for To-Do and `language` for Code supported
+        :param kwargs:
+            :kwargs param checked:  bool for to_do
+            :kwargs param language: str for code
+            :kwargs param caption:  str or RichTextArray for code
         :return:
         """
         new_dict = {

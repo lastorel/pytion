@@ -137,12 +137,48 @@ Extension attributes are listed below in support matrix:
 | `synced_block` | Block for synced content aka parent | + | - | + | `synced_from: LinkTo` |
 | `template` | Template Block title | + | - | + |  |
 | `link_to_page` | Block with link to particular page `@...` | + | - | - | `link: LinkTo` |
-| `table` | Table Block with some attrs | - | - | + |  |
-| `table_row` | Children Blocks with table row content | - | - | - |  |
+| `table` | Table Block with some attrs | + | - | + | `table_width: int` |
+| `table_row` | Children Blocks with table row content | + | - | - |  |
 | `breadcrumb` | Empty Block actually | + | - | - |  |
 | `unsupported` | Blocks unsupported by API | + | - | - |  |
 
 API converts **toggle heading** Block to simple heading Block.
+
+### Block creating examples
+
+Create `paragraph` block object and add it to Notion:
+
+```
+from pytion.models import Block
+my_text_block = Block.create("Hello World!")
+my_text_block = Block.create(text="Hello World!", type_="paragraph")  # the same
+
+# indented append my block to other known block:
+no.blocks.block_append("5f60073a9dda4a9c93a212a74a107359", block=my_text_block)
+
+# append my block to a known page (in the end)
+no.blocks.block_append("9796f2525016128d9af4bf12b236b555", block=my_text_block)  # the same operation actually
+
+# another way to append:
+my_page = no.pages.get("9796f2525016128d9af4bf12b236b555")
+my_page.block_append(block=my_text_block)
+```
+
+Create `to_do` block object:
+
+```
+from pytion.models import Block
+my_todo_block = Block.create("create readme documentation", type_="to_do")
+my_todo_block2 = Block.create("add 'create' method", type_="to_do", checked=True)
+```
+
+Create `code` block object:
+
+```
+from pytion.models import Block
+my_code_block = Block.create("code example here", type_="code", language="javascript")
+my_code_block2 = Block.create("another code example", type_="code", caption="it will be plain text code block with caption")
+```
 
 ## Logging
 
