@@ -134,6 +134,8 @@ class Request(object):
         self.session = requests.Session()
         self.base = base if base else envs.NOTION_URL
         self._token = token if token else envs.NOTION_SECRET
+        if not self._token:
+            logger.error("Token is not provided or file `token` is not found!")
         self.version = envs.NOTION_VERSION
         self.auth = {"Authorization": "Bearer " + self._token}
         self.headers = {"Notion-Version": self.version, **self.auth}
