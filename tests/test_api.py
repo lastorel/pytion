@@ -1,7 +1,7 @@
 import pytest
 
 from pytion.models import Page, Block, Database, User
-from pytion.models import BlockArray, PropertyValue
+from pytion.models import BlockArray, PropertyValue, PageArray
 from pytion import InvalidRequestURL, ObjectNotFound, ValidationError
 
 
@@ -88,8 +88,8 @@ class TestElement:
         assert database.obj.id == "0e9539099cff456d89e44684d6b6c701"
         assert str(database.obj.title) == "Little Database"
 
-    def test_get_parent__database_obj(self, no):
-        database = no.databases.get("0e9539099cff456d89e44684d6b6c701")  # Little Database
+    def test_get_parent__database_obj(self, little_database):
+        database = little_database  # Little Database
         parent_page_block = database.get_parent()
         assert isinstance(parent_page_block.obj, Block)
         assert parent_page_block.obj.id == "878d628488d94894ab14f9b872cd6870"
@@ -119,8 +119,8 @@ class TestElement:
         assert len(blocks.obj) == 3
         assert isinstance(blocks.obj[0], Block)
 
-    def test_get_block_children__page_obj(self, no):
-        page = no.pages.get("82ee5677402f44819a5da3302273400a")  # Page with some texts
+    def test_get_block_children__page_obj(self, page_some_texts):
+        page = page_some_texts  # Page with some texts
         blocks = page.get_block_children()
         assert isinstance(blocks.obj, BlockArray)
         assert len(blocks.obj) == 3
@@ -143,8 +143,8 @@ class TestElement:
         something = no.databases.get_block_children("0e9539099cff456d89e44684d6b6c701")  # Little Database
         assert something is None, "Database has no children"
 
-    def test_get_block_children__database_obj(self, no):
-        database = no.databases.get("0e9539099cff456d89e44684d6b6c701")  # Little Database
+    def test_get_block_children__database_obj(self, little_database):
+        database = little_database  # Little Database
         something = database.get_block_children()
         assert something is None, "Database has no children"
 
@@ -161,8 +161,8 @@ class TestElement:
         assert len(blocks.obj) == 6
         assert isinstance(blocks.obj[0], Block)
 
-    def test_get_block_children_recursive__page_obj(self, no):
-        page = no.pages.get("82ee5677402f44819a5da3302273400a")  # Page with some texts
+    def test_get_block_children_recursive__page_obj(self, page_some_texts):
+        page = page_some_texts  # Page with some texts
         blocks = page.get_block_children_recursive()
         assert isinstance(blocks.obj, BlockArray)
         assert len(blocks.obj) == 6
@@ -185,8 +185,8 @@ class TestElement:
         something = no.databases.get_block_children_recursive("0e9539099cff456d89e44684d6b6c701")  # Little Database
         assert something is None, "Database has no children"
 
-    def test_get_block_children_recursive__database_obj(self, no):
-        database = no.databases.get("0e9539099cff456d89e44684d6b6c701")  # Little Database
+    def test_get_block_children_recursive__database_obj(self, little_database):
+        database = little_database  # Little Database
         something = database.get_block_children_recursive()
         assert something is None, "Database has no children"
 
@@ -204,8 +204,8 @@ class TestElement:
         assert len(blocks.obj) == 5
         assert isinstance(blocks.obj[0], Block)
 
-    def test_get_block_children_recursive__max_depth(self, no):
-        page = no.pages.get("82ee5677402f44819a5da3302273400a")  # Page with some texts
+    def test_get_block_children_recursive__max_depth(self, page_some_texts):
+        page = page_some_texts  # Page with some texts
         blocks = page.get_block_children_recursive(force=True, max_depth=2)
         assert isinstance(blocks.obj, BlockArray)
         assert len(blocks.obj) == 7
@@ -231,3 +231,122 @@ class TestElement:
     def test_get_page_property__bad_page(self, no):
         with pytest.raises(ObjectNotFound):
             no.pages.get_page_property("%7Dma%3F", "b85877eaf7bf4245a8c5218055eeb81a")
+
+    def test_db_query__id(self, no):
+        pages = no.databases.db_query("0e9539099cff456d89e44684d6b6c701")  # Little Database
+        assert isinstance(pages.obj, PageArray)
+        assert len(pages.obj) == 4
+        assert str(pages.obj[0].title) == ""
+
+    def test_db_query__obj(self, little_database):
+        pages = little_database.db_query(limit=3)
+        assert isinstance(pages.obj, PageArray)
+        assert len(pages.obj) == 3
+        assert str(pages.obj[0].title) == ""
+
+    def test_db_filter__title_ez(self, little_database):
+        pages = little_database.db_filter("testing page")
+        assert isinstance(pages.obj, PageArray)
+        assert len(pages.obj) == 1
+        assert str(pages.obj[0].title) == "Parent testing page"
+
+    def test_db_filter__not_contain(self, little_database):
+        pages = little_database.db_filter("testing page", condition="does_not_contain")
+        assert isinstance(pages.obj, PageArray)
+        assert len(pages.obj) == 3
+        assert str(pages.obj[0].title) == ""
+
+    def test_db_filter__ends_with(self, little_database):
+        pages = little_database.db_filter(
+            property_name="Name", property_type="title", value="what?", condition="ends_with"
+        )
+        assert isinstance(pages.obj, PageArray)
+        assert len(pages.obj) == 1
+        assert str(pages.obj[0].title) == "wait, what?"
+
+    def test_db_filter__is_empty(self, little_database):
+        pages = little_database.db_filter(property_name="title", property_type="title", condition="is_empty")
+        assert isinstance(pages.obj, PageArray)
+        assert len(pages.obj) == 1
+        assert str(pages.obj[0].title) == ""
+
+    def test_db_filter__greater_than(self, little_database):
+        pages = little_database.db_filter(
+            property_name="Digit", property_type="number", condition="greater_than", value="1"
+        )
+        assert isinstance(pages.obj, PageArray)
+        assert len(pages.obj) == 2
+        assert str(pages.obj[0].title) == "We are best friends, body"
+
+    def test_db_filter__checkbox(self, little_database):
+        pages = little_database.db_filter(property_name="Done", property_type="checkbox")
+        assert isinstance(pages.obj, PageArray)
+        assert len(pages.obj) == 1
+        assert str(pages.obj[0].title) == "We are best friends, body"
+
+    def test_db_filter__contains_tag(self, little_database):
+        pages = little_database.db_filter(
+            property_name="Tags", property_type="multi_select", value="tag1"
+        )
+        assert isinstance(pages.obj, PageArray)
+        assert len(pages.obj) == 2
+        assert str(pages.obj[0].title) == ""
+
+    def test_db_filter__notcontains_tag(self, little_database):
+        pages = little_database.db_filter(
+            property_name="Tags", property_type="multi_select", value="tag2", condition="does_not_contain"
+        )
+        assert isinstance(pages.obj, PageArray)
+        assert len(pages.obj) == 3
+        assert str(pages.obj[0].title) == ""
+
+    def test_db_filter__no_tags(self, little_database):
+        pages = little_database.db_filter(
+            property_name="Tags", property_type="multi_select", condition="is_empty"
+        )
+        assert isinstance(pages.obj, PageArray)
+        assert len(pages.obj) == 1
+        assert str(pages.obj[0].title) == "wait, what?"
+
+    def test_db_filter__tag_property_obj(self, no, little_database):
+        page = no.pages.get("c2fc6b3dc3d244e9be2a3d28b26082bf")  # Untitled
+        my_prop = page.obj.properties["Tags"]
+        pages = little_database.db_filter(property_obj=my_prop)
+        assert isinstance(pages.obj, PageArray)
+        assert len(pages.obj) == 2
+        assert str(pages.obj[0].title) == ""
+
+    def test_db_filter__without_filter(self, little_database):
+        pages = little_database.db_filter("")
+        assert isinstance(pages.obj, PageArray)
+        assert len(pages.obj) == 4
+        assert str(pages.obj[0].title) == ""
+
+    def test_db_filter__date_after(self, little_database):
+        pages = little_database.db_filter(
+            property_name="created", property_type="date", condition="on_or_after", value="2022-04-22"
+        )
+        assert isinstance(pages.obj, PageArray)
+        assert len(pages.obj) == 2
+        assert str(pages.obj[0].title) == ""
+
+    def test_db_filter__date_next_year(self, little_database):
+        pages = little_database.db_filter(
+            property_name="created", property_type="created_time", condition="next_year", value="2022-04-22"
+        )
+        assert isinstance(pages.obj, PageArray)
+        assert len(pages.obj) == 0
+
+    def test_db_filter__sort_desc(self, little_database):
+        pages = little_database.db_filter("", descending="created")
+        assert isinstance(pages.obj, PageArray)
+        assert len(pages.obj) == 4
+        assert str(pages.obj[0].title) == ""
+        assert str(pages.obj[2].title) == "We are best friends, body"
+
+    def test_db_filter__sort_asc(self, little_database):
+        pages = little_database.db_filter("", ascending="Digit")
+        assert isinstance(pages.obj, PageArray)
+        assert len(pages.obj) == 4
+        assert str(pages.obj[0].title) == "wait, what?"
+        assert str(pages.obj[2].title) == "We are best friends, body"

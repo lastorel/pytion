@@ -240,8 +240,10 @@ class Element(object):
             return None
         return Element(api=self.api, name="pages", obj=PageArray(r["results"]))
 
-    def db_filter(self, **kwargs) -> Optional[Element]:
+    def db_filter(self, title: str = None, **kwargs) -> Optional[Element]:
         """
+        :param title: filter by title contains + opt. attrs: condition, sort etc.
+        OR
         :param property_name: mandatory - full name or ID of property to filter by
         :param value: the value of this property to filter by (may be bool or datetime etc.)
         :param property_type: mandatory field - `text`, `number`, `checkbox`, `date`, `select` etc.
@@ -257,6 +259,9 @@ class Element(object):
         :return:              self.obj -> PageArray
 
         examples
+        `.db_filter("My Page Title")`
+        `.db_filter("", ascending="Tags")`
+        `.db_filter(property_name="Done", property_type="checkbox")`
         `.db_filter(property_name="Done", property_type="checkbox", value=False, descending="title")`
         `.db_filter(property_name="tags", property_type="multi_select", condition="is_not_empty")`
         `.db_filter(raw=YOUR_BIG_DICT_FROM_NOTION_DOCS, limit=2)`
@@ -269,7 +274,10 @@ class Element(object):
                 sort = Sort(property_name=kwargs["ascending"], direction="ascending")
             elif kwargs.get("descending"):
                 sort = Sort(property_name=kwargs["descending"], direction="descending")
-            filter_obj = Filter(**kwargs)
+            if isinstance(title, str):
+                filter_obj = Filter(property_name="title", value=title, property_type="title", **kwargs)
+            else:
+                filter_obj = Filter(**kwargs)
             return self.db_query(filter_=filter_obj, sorts=sort, **kwargs)
         logger.warning("Database must be provided. use .get() before")
         return None
