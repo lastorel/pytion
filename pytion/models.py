@@ -13,6 +13,8 @@ class RichText(object):
         self.plain_text: str = kwargs.get("plain_text")
         self.href: Optional[str] = kwargs.get("href")
         self.annotations: Dict[str, Union[bool, str]] = kwargs.get("annotations")
+        # if not self.annotations:
+        #     self._create_default_annotations()
         self.type: str = kwargs.get("type")
         if self.type == "mention":
             subtype = kwargs[self.type].get("type")
@@ -53,6 +55,12 @@ class RichText(object):
     def __bool__(self):
         return bool(self.plain_text)
 
+    def _create_default_annotations(self):
+        self.annotations = {
+            "bold": False, "italic": False, "strikethrough": False,
+            "underline": False, "code": False, "color": "default"
+        }
+
     # def __len__(self):
     #     return len(self.plain_text)
 
@@ -60,7 +68,12 @@ class RichText(object):
         """
         Text type supported only
         """
-        return {"type": "text", "text": {"content": self.plain_text, "link": None}}
+        return {
+            "type": "text",
+            "text": {"content": self.plain_text, "link": None},
+            # "annotations": self.annotations,
+            # "plain_text": self.plain_text,
+        }
 
 
 class RichTextArray(MutableSequence):
@@ -455,7 +468,7 @@ class Database(Model):
             "parent": self.parent.get(),
             "properties": {name: value.get() for name, value in self.properties.items()}
         }
-        if self.title:
+        if isinstance(self.title, RichTextArray):
             new_dict["title"] = self.title.get()
         return new_dict
 
@@ -742,7 +755,7 @@ class Block(Model):
     def get(self, with_object_type: bool = False):
         if self.type in [
             "paragraph", "quote", "heading_1", "heading_2", "heading_3", "to_do",
-            "bulleted_list_item", "numbered_list_item", "toggle", "callout", "code"
+            "bulleted_list_item", "numbered_list_item", "toggle", "callout", "code", "child_database"
         ]:
 
             text = RichTextArray.create(self.text) if isinstance(self.text, str) else self.text
@@ -753,6 +766,8 @@ class Block(Model):
                 new_dict[self.type]["language"] = getattr(self, "language", "plain text")
                 if hasattr(self, "caption"):
                     new_dict[self.type]["caption"] = self.caption.get()
+            if self.type == "child_database":
+                new_dict = {self.type: {"title": str(text)}}
             if with_object_type:
                 new_dict["object"] = "block"
                 new_dict["type"] = self.type

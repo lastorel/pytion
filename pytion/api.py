@@ -297,7 +297,12 @@ class Element(object):
         `parent = LinkTo.create(database_id="24512345125123421")`
         `p1 = Property.create(name="renamed")`
         `p2 = Property.create(type_="multi_select", name="multiselected")`
-        `props = {"Property1_name": p1, "Property2_name": p2}`
+        `props = {"Property1_name": p1, "Property2_name": p2}` OR
+        ```props = {
+            "Name": Property.create("title")
+            "Digit": Property.create("number"),
+            "Status": Property.create("select")
+        }```
         `db = db.db_create(parent=parent, properties=props, title=RichTextArray.create("NEW DB"))`
         """
         if self.name != "databases":

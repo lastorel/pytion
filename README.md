@@ -63,6 +63,8 @@ some text
 
 `.db_create(database_obj, parent, properties, title)` - Create Database.
 
+**_There is no way to delete a database object yet!_**
+
 `.db_update(id_, title, properties)` - Update Database.
 
 `.page_create(page_obj, parent, properties, title)` - Create Page.

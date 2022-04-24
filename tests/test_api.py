@@ -1,7 +1,7 @@
 import pytest
 
 from pytion.models import Page, Block, Database, User
-from pytion.models import BlockArray, PropertyValue, PageArray
+from pytion.models import BlockArray, PropertyValue, PageArray, LinkTo, Property
 from pytion import InvalidRequestURL, ObjectNotFound, ValidationError
 
 
@@ -350,3 +350,18 @@ class TestElement:
         assert len(pages.obj) == 4
         assert str(pages.obj[0].title) == "wait, what?"
         assert str(pages.obj[2].title) == "We are best friends, body"
+
+    def test_db_create(self, no):
+        parent = LinkTo.create(page_id="2dff77eb43d44ce097ffb421499f82aa")  # Page for creating databases
+        properties = {
+            "Name": Property.create("title"),
+            "Digit": Property.create("number"),
+            "Status": Property.create("select"),
+        }
+        title = "DB 1"
+        database = no.databases.db_create(parent=parent, properties=properties, title=title)
+        assert isinstance(database.obj, Database)
+        assert str(database.obj.title) == title
+        assert "Status" in database.obj.properties
+
+        # Delete database manually. There is no way to delete a database by API
