@@ -134,7 +134,7 @@ class Element(object):
         if obj:
             return self.from_linkto(obj.children, limit=limit)
         child = self.api.session.method(
-            method="get", path=self.name, id_=id_, after_path="children", limit=limit
+            method="get", path="blocks", id_=id_, after_path="children", limit=limit
         )
         # children object returns list of Blocks
         if child["object"] != "list":

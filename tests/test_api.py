@@ -112,3 +112,45 @@ class TestElement:
     def test_get_parent__workspace(self, root_page):
         workspace = root_page.get_parent()
         assert workspace is None
+
+    def test_get_block_children__page_id(self, no):
+        blocks = no.pages.get_block_children("82ee5677402f44819a5da3302273400a")  # Page with some texts
+        assert isinstance(blocks.obj, BlockArray)
+        assert len(blocks.obj) == 3
+        assert isinstance(blocks.obj[0], Block)
+
+    def test_get_block_children__page_obj(self, no):
+        page = no.pages.get("82ee5677402f44819a5da3302273400a")  # Page with some texts
+        blocks = page.get_block_children()
+        assert isinstance(blocks.obj, BlockArray)
+        assert len(blocks.obj) == 3
+        assert isinstance(blocks.obj[0], Block)
+
+    def test_get_block_children__block_id(self, no):
+        blocks = no.blocks.get_block_children("8a920ba7dc1d4961811e5c82b28028ed")  # Hello! How are you?
+        assert isinstance(blocks.obj, BlockArray)
+        assert len(blocks.obj) == 1
+        assert isinstance(blocks.obj[0], Block)
+
+    def test_get_block_children__block_obj(self, no):
+        block = no.blocks.get("8a920ba7dc1d4961811e5c82b28028ed")  # Hello! How are you?
+        blocks = block.get_block_children()
+        assert isinstance(blocks.obj, BlockArray)
+        assert len(blocks.obj) == 1
+        assert isinstance(blocks.obj[0], Block)
+
+    def test_get_block_children__database_id(self, no):
+        something = no.databases.get_block_children("0e9539099cff456d89e44684d6b6c701")  # Little Database
+        assert something is None, "Database has no children"
+
+    def test_get_block_children__database_obj(self, no):
+        database = no.databases.get("0e9539099cff456d89e44684d6b6c701")  # Little Database
+        something = database.get_block_children()
+        assert something is None, "Database has no children"
+
+    def test_get_block_children__child_database(self, no):
+        database_block = no.blocks.get("0e9539099cff456d89e44684d6b6c701")  # Little Database
+        database = database_block.get_block_children()
+        assert isinstance(database.obj, Database)
+        assert database.obj.id == "0e9539099cff456d89e44684d6b6c701"
+        assert str(database.obj.title) == "Little Database"
