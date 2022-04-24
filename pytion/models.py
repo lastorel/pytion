@@ -229,7 +229,7 @@ class Property(object):
         return data
 
     @classmethod
-    def create(cls, type_: str = "", **kwargs):
+    def create(cls, type_: Optional[str] = "", **kwargs):
         """
         Property Schema Object (watch docs)
 

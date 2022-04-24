@@ -365,3 +365,43 @@ class TestElement:
         assert "Status" in database.obj.properties
 
         # Delete database manually. There is no way to delete a database by API
+
+    def test_db_update__rename_title(self, database_for_updates):
+        old_title = str(database_for_updates.obj.title)
+        new_title = "1 BDU"
+        database = database_for_updates.db_update(title=new_title)
+        assert isinstance(database.obj, Database)
+        assert str(database.obj.title) == new_title
+
+        old_database = database_for_updates.db_update(title=old_title)
+        assert str(old_database.obj.title) == old_title
+
+    def test_db_update__rename_prop(self, database_for_updates):
+        properties = {"Name": Property.create(type_="title", name="Subject")}
+        database = database_for_updates.db_update(properties=properties)
+        assert "Subject" in database.obj.properties
+
+        title_property = database.obj.properties["Subject"]
+        title_property.name = "Name"
+        old_properties = {title_property.id: title_property}
+        old_database = database.db_update(properties=old_properties)
+        assert "Name" in old_database.obj.properties
+
+    def test_db_update__retype_prop(self, database_for_updates):
+        properties = {"Tags": Property.create("select")}
+        database = database_for_updates.db_update(properties=properties)
+        assert database.obj.properties["Tags"].type == "select"
+
+        old_properties = {"Tags": Property.create("multi_select")}
+        old_database = database_for_updates.db_update(properties=old_properties)
+        assert old_database.obj.properties["Tags"].type == "multi_select"
+
+    def test_db_update__create_delete_prop(self, database_for_updates):
+        properties = {"New property": Property.create("checkbox")}
+        database = database_for_updates.db_update(properties=properties)
+        assert "New property" in database.obj.properties
+        assert database.obj.properties["New property"].type == "checkbox"
+
+        properties["New property"] = Property.create(None)
+        database = database.db_update(properties=properties)
+        assert "New property" not in database.obj.properties

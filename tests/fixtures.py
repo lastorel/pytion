@@ -14,3 +14,8 @@ def page_some_texts(no):
 @pytest.fixture(scope="session")
 def little_database(no):
     return no.databases.get("0e9539099cff456d89e44684d6b6c701")
+
+
+@pytest.fixture(scope="session")
+def database_for_updates(no):
+    return no.databases.get("bf6ee5f75f99433a9d65132c05b42958")
