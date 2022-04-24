@@ -597,19 +597,22 @@ class Block(Model):
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
 
         # when the block is child_page, parent will be the page object
-        # when the block is child_database, children will be the database object
+        # when the block is child_database, parent AND children will be the database object
         elif "child" in self.type:
-            self.text = kwargs[self.type].get("title")
+            self.text: str = kwargs[self.type].get("title")
             if self.type == "child_page":
+                # self.children is already set
                 self.parent = LinkTo(type="page", page=self.id)
             elif self.type == "child_database":
+                # well yes. parent and children are the same. parent of this database will be the page of this block
+                # and the database is children of this block
+                self.parent = LinkTo.create(database_id=self.id)
                 self.children = LinkTo.create(database_id=self.id)
                 if not self.text:
                     self.text = repr(self.children)
             # page self.has_children is correct. checked.
             # database self.has_children is false.
             # database with custom source had no title!
-            # if child database - can we set self.parent? - well no.
 
         # hello, markdown
         elif self.type == "embed":

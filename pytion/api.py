@@ -96,7 +96,7 @@ class Element(object):
         """
         if not self.obj:
             self.get(id_)
-        if getattr(self.obj, "parent"):
+        if getattr(self.obj, "parent", None):
             return self.from_linkto(self.obj.parent)
         logger.warning(f"Parent object can not be found")
         return None
