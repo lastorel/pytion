@@ -172,9 +172,8 @@ class Element(object):
             id_ = obj.id
             if isinstance(obj, Block) and obj.type == "child_database":
                 return self.from_linkto(obj.children)
-        name = "blocks"
         child = self.api.session.method(
-            method="get", path=name, id_=id_, after_path="children", limit=limit
+            method="get", path="blocks", id_=id_, after_path="children", limit=limit
         )
         ba = BlockArray([])
         for b in child["results"]:
@@ -185,7 +184,7 @@ class Element(object):
                 continue
             if block_obj.has_children and _cur_depth < max_depth:
                 sub_element = Element(api=self.api, name="blocks").get_block_children_recursive(
-                    id_=block_obj.id, max_depth=max_depth, _cur_depth=_cur_depth + 1, limit=limit
+                    id_=block_obj.id, max_depth=max_depth, _cur_depth=_cur_depth + 1, limit=limit, force=force
                 )
                 ba.extend(sub_element.obj)
 

@@ -54,7 +54,7 @@ class TestElement:
     def test_get__after_path_block(self, no):
         blocks = no.blocks.get("8a920ba7dc1d4961811e5c82b28028ed", _after_path="children")  # Hello! How are you?
         assert isinstance(blocks.obj, BlockArray)
-        assert len(blocks.obj) == 1
+        assert len(blocks.obj) == 3
         assert isinstance(blocks.obj[0], Block)
 
     def test_get_parent__block(self, no):
@@ -129,14 +129,14 @@ class TestElement:
     def test_get_block_children__block_id(self, no):
         blocks = no.blocks.get_block_children("8a920ba7dc1d4961811e5c82b28028ed")  # Hello! How are you?
         assert isinstance(blocks.obj, BlockArray)
-        assert len(blocks.obj) == 1
+        assert len(blocks.obj) == 3
         assert isinstance(blocks.obj[0], Block)
 
     def test_get_block_children__block_obj(self, no):
         block = no.blocks.get("8a920ba7dc1d4961811e5c82b28028ed")  # Hello! How are you?
         blocks = block.get_block_children()
         assert isinstance(blocks.obj, BlockArray)
-        assert len(blocks.obj) == 1
+        assert len(blocks.obj) == 3
         assert isinstance(blocks.obj[0], Block)
 
     def test_get_block_children__database_id(self, no):
@@ -154,3 +154,59 @@ class TestElement:
         assert isinstance(database.obj, Database)
         assert database.obj.id == "0e9539099cff456d89e44684d6b6c701"
         assert str(database.obj.title) == "Little Database"
+
+    def test_get_block_children_recursive__page_id(self, no):
+        blocks = no.pages.get_block_children_recursive("82ee5677402f44819a5da3302273400a")  # Page with some texts
+        assert isinstance(blocks.obj, BlockArray)
+        assert len(blocks.obj) == 6
+        assert isinstance(blocks.obj[0], Block)
+
+    def test_get_block_children_recursive__page_obj(self, no):
+        page = no.pages.get("82ee5677402f44819a5da3302273400a")  # Page with some texts
+        blocks = page.get_block_children_recursive()
+        assert isinstance(blocks.obj, BlockArray)
+        assert len(blocks.obj) == 6
+        assert isinstance(blocks.obj[0], Block)
+
+    def test_get_block_children_recursive__block_id(self, no):
+        blocks = no.blocks.get_block_children_recursive("8a920ba7dc1d4961811e5c82b28028ed")  # Hello! How are you?
+        assert isinstance(blocks.obj, BlockArray)
+        assert len(blocks.obj) == 3
+        assert isinstance(blocks.obj[0], Block)
+
+    def test_get_block_children_recursive__block_obj(self, no):
+        block = no.blocks.get("8a920ba7dc1d4961811e5c82b28028ed")  # Hello! How are you?
+        blocks = block.get_block_children_recursive()
+        assert isinstance(blocks.obj, BlockArray)
+        assert len(blocks.obj) == 3
+        assert isinstance(blocks.obj[0], Block)
+
+    def test_get_block_children_recursive__database_id(self, no):
+        something = no.databases.get_block_children_recursive("0e9539099cff456d89e44684d6b6c701")  # Little Database
+        assert something is None, "Database has no children"
+
+    def test_get_block_children_recursive__database_obj(self, no):
+        database = no.databases.get("0e9539099cff456d89e44684d6b6c701")  # Little Database
+        something = database.get_block_children_recursive()
+        assert something is None, "Database has no children"
+
+    def test_get_block_children_recursive__child_database(self, no):
+        database_block = no.blocks.get("0e9539099cff456d89e44684d6b6c701")  # Little Database
+        database = database_block.get_block_children_recursive()
+        assert isinstance(database.obj, Database)
+        assert database.obj.id == "0e9539099cff456d89e44684d6b6c701"
+        assert str(database.obj.title) == "Little Database"
+
+    def test_get_block_children_recursive__force(self, no):
+        block = no.blocks.get("8a920ba7dc1d4961811e5c82b28028ed")  # Hello! How are you?
+        blocks = block.get_block_children_recursive(force=True)
+        assert isinstance(blocks.obj, BlockArray)
+        assert len(blocks.obj) == 5
+        assert isinstance(blocks.obj[0], Block)
+
+    def test_get_block_children_recursive__max_depth(self, no):
+        page = no.pages.get("82ee5677402f44819a5da3302273400a")  # Page with some texts
+        blocks = page.get_block_children_recursive(force=True, max_depth=2)
+        assert isinstance(blocks.obj, BlockArray)
+        assert len(blocks.obj) == 7
+        assert isinstance(blocks.obj[0], Block)
