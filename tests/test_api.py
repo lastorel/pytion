@@ -1,8 +1,8 @@
 import pytest
 
 from pytion.models import Page, Block, Database, User
-from pytion.models import BlockArray
-from pytion import InvalidRequestURL, ObjectNotFound
+from pytion.models import BlockArray, PropertyValue
+from pytion import InvalidRequestURL, ObjectNotFound, ValidationError
 
 
 def test_notion(no):
@@ -210,3 +210,24 @@ class TestElement:
         assert isinstance(blocks.obj, BlockArray)
         assert len(blocks.obj) == 7
         assert isinstance(blocks.obj[0], Block)
+
+    def test_get_page_property__page_id(self, no):
+        p = no.pages.get_page_property("%7Dma%3F", "b85877eaf7bf4245a8c5218055eeb81f")
+        assert isinstance(p.obj, PropertyValue)
+        assert len(p.obj.value) == 2
+        assert p.obj.type == "multi_select"
+
+    def test_get_page_property__page_obj(self, no):
+        page = no.pages.get("b85877eaf7bf4245a8c5218055eeb81f")
+        p = page.get_page_property("%7Dma%3F")
+        assert isinstance(p.obj, PropertyValue)
+        assert len(p.obj.value) == 2
+        assert p.obj.type == "multi_select"
+
+    def test_get_page_property__bad_id(self, no):
+        with pytest.raises(ValidationError):
+            no.pages.get_page_property("%7Dma%3A", "b85877eaf7bf4245a8c5218055eeb81f")
+
+    def test_get_page_property__bad_page(self, no):
+        with pytest.raises(ObjectNotFound):
+            no.pages.get_page_property("%7Dma%3F", "b85877eaf7bf4245a8c5218055eeb81a")
