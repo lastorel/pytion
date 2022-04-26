@@ -20,6 +20,12 @@ def little_database(no):
 def database_for_updates(no):
     return no.databases.get("bf6ee5f75f99433a9d65132c05b42958")
 
+
 @pytest.fixture(scope="session")
 def page_for_pages(no):
     return no.pages.get("1bc86cc1d6f24362a6c40c2c89b423cc")
+
+
+@pytest.fixture(scope="session")
+def page_for_updates(no):
+    return no.pages.get("36223246a20e42df8f9b354ed1f11d75")

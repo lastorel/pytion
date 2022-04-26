@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from pytion.models import Page, Block, Database, User
+from pytion.models import Page, Block, Database, User, RichTextArray
 from pytion.models import BlockArray, PropertyValue, PageArray, LinkTo, Property
 from pytion import InvalidRequestURL, ObjectNotFound, ValidationError
 
@@ -464,3 +464,37 @@ class TestElement:
         # delete section
         delete_page = page.page_update(archived=True)
         assert delete_page.obj.archived is True
+
+    def test_page_update__rename(self, page_for_updates):
+        old_name = str(page_for_updates.obj.title)
+        new_name = "Updating for page"
+        page = page_for_updates.page_update(title=new_name)
+        assert isinstance(page.obj, Page)
+        assert str(page.obj.title) == new_name
+
+        old_page = page.page_update(title=RichTextArray.create(old_name))
+        assert str(old_page.obj.title) == old_name
+
+    def test_page_update__change_props(self, page_for_updates):
+        old_props = page_for_updates.obj.properties
+        new_props = {
+            "Tags": PropertyValue.create("multi_select", ["tag2"]),
+            "done": PropertyValue.create("checkbox", False),
+            "when": PropertyValue.create("date", datetime.now()),
+        }
+        page = page_for_updates.page_update(properties=new_props)
+        assert isinstance(page.obj, Page)
+        assert "tag2" in page.obj.properties["Tags"].value
+        assert page.obj.properties["done"].value is False
+
+        old_page = page.page_update(properties=old_props)
+        assert "tag1" in old_page.obj.properties["Tags"].value
+        assert old_page.obj.properties["done"].value is True
+
+    def test_page_update__delete(self, page_for_updates):
+        page = page_for_updates.page_update(archived=True)
+        assert isinstance(page.obj, Page)
+        assert page.obj.archived is True
+
+        old_page = page.page_update(archived=False)
+        assert old_page.obj.archived is False
