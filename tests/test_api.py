@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pytest
 
 from pytion.models import Page, Block, Database, User
@@ -405,3 +407,60 @@ class TestElement:
         properties["New property"] = Property.create(None)
         database = database.db_update(properties=properties)
         assert "New property" not in database.obj.properties
+
+    def test_page_create__into_page(self, no, page_for_pages):
+        parent = LinkTo(from_object=page_for_pages.obj)
+        page = no.pages.page_create(parent=parent, title="Page 1")
+        assert isinstance(page.obj, Page)
+        assert str(page.obj.title) == "Page 1"
+        # delete section
+        delete_page = page.page_update(archived=True)
+        assert delete_page.obj.archived is True
+
+    def test_page_create__into_database(self, no):
+        parent = LinkTo.create(database_id="35f50aa293964b0d93e09338bc980e2e")  # Database for creating pages
+        page = no.pages.page_create(parent=parent, title="Page 2")
+        assert isinstance(page.obj, Page)
+        assert str(page.obj.title) == "Page 2"
+        # delete section
+        delete_page = page.page_update(archived=True)
+        assert delete_page.obj.archived is True
+
+    def test_page_create__into_database_props(self, no):
+        parent = LinkTo.create(database_id="35f50aa293964b0d93e09338bc980e2e")  # Database for creating pages
+        props = {
+            "Tags": PropertyValue.create(type_="multi_select", value=["tag1", "tag2"]),
+            "done": PropertyValue.create("checkbox", True),
+            "when": PropertyValue.create("date", datetime.now()),
+        }
+        page = no.pages.page_create(parent=parent, properties=props, title="Page 3")
+        assert isinstance(page.obj, Page)
+        assert str(page.obj.title) == "Page 3"
+        # delete section
+        delete_page = page.page_update(archived=True)
+        assert delete_page.obj.archived is True
+
+    def test_page_create__with_children(self, no, page_for_pages):
+        parent = LinkTo(from_object=page_for_pages.obj)
+        child = Block.create("Hello, World!")
+        page = no.pages.page_create(parent=parent, title="Page 4", children=[child])
+        assert isinstance(page.obj, Page)
+        assert str(page.obj.title) == "Page 4"
+        blocks = page.get_block_children()
+        assert isinstance(blocks.obj, BlockArray)
+        assert len(blocks.obj) == 1
+        assert isinstance(blocks.obj[0], Block)
+        assert str(blocks.obj[0].text) == "Hello, World!"
+        # delete section
+        delete_page = page.page_update(archived=True)
+        assert delete_page.obj.archived is True
+
+    def test_page_create__from_obj(self, no, page_for_pages):
+        parent = LinkTo(from_object=page_for_pages.obj)
+        page_obj = Page.create(parent=parent, title="Page 5")
+        page = no.pages.page_create(page_obj=page_obj)
+        assert isinstance(page.obj, Page)
+        assert str(page.obj.title) == "Page 5"
+        # delete section
+        delete_page = page.page_update(archived=True)
+        assert delete_page.obj.archived is True

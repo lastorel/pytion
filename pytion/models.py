@@ -497,7 +497,7 @@ class Page(Model):
         self.parent = kwargs["parent"] if isinstance(kwargs.get("parent"), LinkTo) else LinkTo(**kwargs["parent"])
         self.archived: bool = kwargs.get("archived")
         self.url: str = kwargs.get("url")
-        self.children = LinkTo(block=self)
+        self.children = kwargs["children"] if "children" in kwargs else LinkTo(block=self)
         self.properties = {
             name: (PropertyValue(data, name) if not isinstance(data, PropertyValue) else data)
             for name, data in kwargs["properties"].items()
@@ -528,8 +528,8 @@ class Page(Model):
 
     @classmethod
     def create(
-            cls, parent: LinkTo, properties: Dict[str, PropertyValue],
-            title: Optional[RichTextArray] = None, children: Optional[BlockArray] = None, **kwargs
+            cls, parent: LinkTo, properties: Optional[Dict[str, PropertyValue]] = None,
+            title: Optional[RichTextArray, str] = None, children: Optional[BlockArray] = None, **kwargs
     ):
         if not properties:
             properties = {}
