@@ -48,7 +48,7 @@ class Element(object):
         self.obj = obj
         logger.debug(f"Element {self!r} created")
 
-    def get(self, id_: str, _after_path: str = None) -> Element:
+    def get(self, id_: str, _after_path: str = None, limit: int = 0) -> Element:
         """
         Get Element by ID.
         .query.RequestError exception if not found
@@ -64,9 +64,11 @@ class Element(object):
         if "-" in id_:
             id_ = id_.replace("-", "")
         if not _after_path:
-            raw_obj = self.api.session.method(method="get", path=self.name, id_=id_)
+            raw_obj = self.api.session.method(method="get", path=self.name, id_=id_, limit=limit)
         else:
-            raw_obj = self.api.session.method(method="get", path=self.name, id_=id_, after_path=_after_path)
+            raw_obj = self.api.session.method(
+                method="get", path=self.name, id_=id_, after_path=_after_path, limit=limit
+            )
         if raw_obj["object"] == "list":
             if self.name == "pages":
                 self.obj = PageArray(raw_obj["results"])
@@ -94,9 +96,8 @@ class Element(object):
         """
         if not self.obj:
             self.get(id_)
-        if getattr(self.obj, "parent"):
-            new_obj = Element(api=self.api, name=self.obj.parent.uri)
-            return new_obj.get(self.obj.parent.id)
+        if getattr(self.obj, "parent", None):
+            return self.from_linkto(self.obj.parent)
         logger.warning(f"Parent object can not be found")
         return None
 
@@ -124,18 +125,16 @@ class Element(object):
 
         BlockArray or Database object expected.
         """
-        if self.name != "blocks":
-            logger.warning("Only `blocks` can have children")
+        if self.name not in ("blocks", "pages"):
+            logger.warning("Only `blocks` or `pages` can have children")
             return None
         if isinstance(id_, str) and "-" in id_:
             id_ = id_.replace("-", "")
         obj = block if block else self.obj
         if obj:
-            id_ = obj.id
-            if obj.type == "child_database":
-                return self.from_linkto(obj.children)
+            return self.from_linkto(obj.children, limit=limit)
         child = self.api.session.method(
-            method="get", path=self.name, id_=id_, after_path="children", limit=limit
+            method="get", path="blocks", id_=id_, after_path="children", limit=limit
         )
         # children object returns list of Blocks
         if child["object"] != "list":
@@ -163,18 +162,18 @@ class Element(object):
             block inside block
         some text
         """
-        if self.name != "blocks":
-            logger.warning("Only `blocks` can have children")
+        if self.name not in ("blocks", "pages"):
+            logger.warning("Only `blocks` or `pages` can have children")
             return None
         if isinstance(id_, str) and "-" in id_:
             id_ = id_.replace("-", "")
         obj = block if block else self.obj
         if obj:
             id_ = obj.id
-            if obj.type == "child_database":
+            if isinstance(obj, Block) and obj.type == "child_database":
                 return self.from_linkto(obj.children)
         child = self.api.session.method(
-            method="get", path=self.name, id_=id_, after_path="children", limit=limit
+            method="get", path="blocks", id_=id_, after_path="children", limit=limit
         )
         ba = BlockArray([])
         for b in child["results"]:
@@ -185,7 +184,7 @@ class Element(object):
                 continue
             if block_obj.has_children and _cur_depth < max_depth:
                 sub_element = Element(api=self.api, name="blocks").get_block_children_recursive(
-                    id_=block_obj.id, max_depth=max_depth, _cur_depth=_cur_depth + 1, limit=limit
+                    id_=block_obj.id, max_depth=max_depth, _cur_depth=_cur_depth + 1, limit=limit, force=force
                 )
                 ba.extend(sub_element.obj)
 
@@ -241,8 +240,10 @@ class Element(object):
             return None
         return Element(api=self.api, name="pages", obj=PageArray(r["results"]))
 
-    def db_filter(self, **kwargs) -> Optional[Element]:
+    def db_filter(self, title: str = None, **kwargs) -> Optional[Element]:
         """
+        :param title: filter by title contains + opt. attrs: condition, sort etc.
+        OR
         :param property_name: mandatory - full name or ID of property to filter by
         :param value: the value of this property to filter by (may be bool or datetime etc.)
         :param property_type: mandatory field - `text`, `number`, `checkbox`, `date`, `select` etc.
@@ -258,6 +259,9 @@ class Element(object):
         :return:              self.obj -> PageArray
 
         examples
+        `.db_filter("My Page Title")`
+        `.db_filter("", ascending="Tags")`
+        `.db_filter(property_name="Done", property_type="checkbox")`
         `.db_filter(property_name="Done", property_type="checkbox", value=False, descending="title")`
         `.db_filter(property_name="tags", property_type="multi_select", condition="is_not_empty")`
         `.db_filter(raw=YOUR_BIG_DICT_FROM_NOTION_DOCS, limit=2)`
@@ -270,7 +274,10 @@ class Element(object):
                 sort = Sort(property_name=kwargs["ascending"], direction="ascending")
             elif kwargs.get("descending"):
                 sort = Sort(property_name=kwargs["descending"], direction="descending")
-            filter_obj = Filter(**kwargs)
+            if isinstance(title, str):
+                filter_obj = Filter(property_name="title", value=title, property_type="title", **kwargs)
+            else:
+                filter_obj = Filter(**kwargs)
             return self.db_query(filter_=filter_obj, sorts=sort, **kwargs)
         logger.warning("Database must be provided. use .get() before")
         return None
@@ -290,7 +297,12 @@ class Element(object):
         `parent = LinkTo.create(database_id="24512345125123421")`
         `p1 = Property.create(name="renamed")`
         `p2 = Property.create(type_="multi_select", name="multiselected")`
-        `props = {"Property1_name": p1, "Property2_name": p2}`
+        `props = {"Property1_name": p1, "Property2_name": p2}` OR
+        ```props = {
+            "Name": Property.create("title")
+            "Digit": Property.create("number"),
+            "Status": Property.create("select")
+        }```
         `db = db.db_create(parent=parent, properties=props, title=RichTextArray.create("NEW DB"))`
         """
         if self.name != "databases":
@@ -420,6 +432,7 @@ class Element(object):
         Updates text of Block.
         `text`, `checked` (`to_do` type), `language` (`code` type) fields support only!
         You can modify any attrs of existing block and provide it (Block object) to this func.
+        Changing the Block type is not supported.
 
         :param id_:         ID of block to change text OR
         :param block_obj:   modified Block (replace mode only)
@@ -493,12 +506,15 @@ class Element(object):
         )
         return Element(api=self.api, name="blocks", obj=BlockArray(new_blocks["results"]))
 
-    def from_linkto(self, linkto: LinkTo) -> Optional[Element]:
+    def from_linkto(self, linkto: LinkTo, limit: int = 0) -> Optional[Element]:
+        if not linkto:
+            logger.error("LinkTo must be provided!")
+            return None
         if not linkto.uri:
             logger.error("LinkTo.uri must be provided!")
             return None
         new_element = Element(self.api, name=linkto.uri)
-        return new_element.get(linkto.id, getattr(linkto, "after_path", None))
+        return new_element.get(linkto.id, getattr(linkto, "after_path", None), limit)
 
     def from_object(self, model: Union[Database, Page, Block]):
         return Element(self.api, model.path, model)

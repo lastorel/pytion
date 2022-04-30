@@ -13,6 +13,8 @@ class RichText(object):
         self.plain_text: str = kwargs.get("plain_text")
         self.href: Optional[str] = kwargs.get("href")
         self.annotations: Dict[str, Union[bool, str]] = kwargs.get("annotations")
+        # if not self.annotations:
+        #     self._create_default_annotations()
         self.type: str = kwargs.get("type")
         if self.type == "mention":
             subtype = kwargs[self.type].get("type")
@@ -53,6 +55,12 @@ class RichText(object):
     def __bool__(self):
         return bool(self.plain_text)
 
+    def _create_default_annotations(self):
+        self.annotations = {
+            "bold": False, "italic": False, "strikethrough": False,
+            "underline": False, "code": False, "color": "default"
+        }
+
     # def __len__(self):
     #     return len(self.plain_text)
 
@@ -60,7 +68,12 @@ class RichText(object):
         """
         Text type supported only
         """
-        return {"type": "text", "text": {"content": self.plain_text, "link": None}}
+        return {
+            "type": "text",
+            "text": {"content": self.plain_text, "link": None},
+            # "annotations": self.annotations,
+            # "plain_text": self.plain_text,
+        }
 
 
 class RichTextArray(MutableSequence):
@@ -216,7 +229,7 @@ class Property(object):
         return data
 
     @classmethod
-    def create(cls, type_: str = "", **kwargs):
+    def create(cls, type_: Optional[str] = "", **kwargs):
         """
         Property Schema Object (watch docs)
 
@@ -455,7 +468,7 @@ class Database(Model):
             "parent": self.parent.get(),
             "properties": {name: value.get() for name, value in self.properties.items()}
         }
-        if self.title:
+        if isinstance(self.title, RichTextArray):
             new_dict["title"] = self.title.get()
         return new_dict
 
@@ -484,7 +497,7 @@ class Page(Model):
         self.parent = kwargs["parent"] if isinstance(kwargs.get("parent"), LinkTo) else LinkTo(**kwargs["parent"])
         self.archived: bool = kwargs.get("archived")
         self.url: str = kwargs.get("url")
-        self.children = kwargs.get("children")
+        self.children = kwargs["children"] if "children" in kwargs else LinkTo(block=self)
         self.properties = {
             name: (PropertyValue(data, name) if not isinstance(data, PropertyValue) else data)
             for name, data in kwargs["properties"].items()
@@ -515,8 +528,8 @@ class Page(Model):
 
     @classmethod
     def create(
-            cls, parent: LinkTo, properties: Dict[str, PropertyValue],
-            title: Optional[RichTextArray] = None, children: Optional[BlockArray] = None, **kwargs
+            cls, parent: LinkTo, properties: Optional[Dict[str, PropertyValue]] = None,
+            title: Optional[RichTextArray, str] = None, children: Optional[BlockArray] = None, **kwargs
     ):
         if not properties:
             properties = {}
@@ -564,7 +577,7 @@ class Block(Model):
         elif "heading" in self.type:
             indent = self.type.split("_")[-1]
             indent_num = int(indent) if indent.isdigit() else 0
-            prefix = "#" * indent_num + " "
+            prefix = "#" * indent_num
             self.text = RichTextArray.create(prefix) + RichTextArray(kwargs[self.type].get("rich_text"))
 
         elif self.type == "callout":
@@ -573,22 +586,22 @@ class Block(Model):
             # Callout Block does not contain `children` attr (watch Docs)
 
         elif self.type == "quote":
-            self.text = RichTextArray.create("| ") + RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create("|") + RichTextArray(kwargs[self.type].get("rich_text"))
             # Quote Block does not contain `children` attr (watch Docs)
 
         elif "list_item" in self.type:
-            self.text = RichTextArray.create("- ") + RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create("-") + RichTextArray(kwargs[self.type].get("rich_text"))
             # Block does not contain `children` attr (watch Docs)
             # Numbers does not support cause of lack of relativity
 
         elif self.type == "to_do":
             self.checked: bool = kwargs[self.type].get("checked")
-            prefix = "[x] " if self.checked else "[ ] "
+            prefix = "[x]" if self.checked else "[ ]"
             self.text = RichTextArray.create(prefix) + RichTextArray(kwargs[self.type].get("rich_text"))
             # To-do Block does not contain `children` attr (watch Docs)
 
         elif self.type == "toggle":
-            self.text = RichTextArray.create("> ") + RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create(">") + RichTextArray(kwargs[self.type].get("rich_text"))
             # Toggle Block does not contain `children` attr (watch Docs)
 
         elif self.type == "code":
@@ -597,19 +610,22 @@ class Block(Model):
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
 
         # when the block is child_page, parent will be the page object
-        # when the block is child_database, children will be the database object
+        # when the block is child_database, parent AND children will be the database object
         elif "child" in self.type:
-            self.text = kwargs[self.type].get("title")
+            self.text: str = kwargs[self.type].get("title")
             if self.type == "child_page":
+                # self.children is already set
                 self.parent = LinkTo(type="page", page=self.id)
             elif self.type == "child_database":
+                # well yes. parent and children are the same. parent of this database will be the page of this block
+                # and the database is children of this block
+                self.parent = LinkTo.create(database_id=self.id)
                 self.children = LinkTo.create(database_id=self.id)
                 if not self.text:
                     self.text = repr(self.children)
             # page self.has_children is correct. checked.
             # database self.has_children is false.
             # database with custom source had no title!
-            # if child database - can we set self.parent? - well no.
 
         # hello, markdown
         elif self.type == "embed":
@@ -707,7 +723,7 @@ class Block(Model):
             self.text = "*Table of contents*"
 
         elif self.type == "template":
-            self.text = RichTextArray.create("Template: ") + RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create("Template:") + RichTextArray(kwargs[self.type].get("rich_text"))
 
         elif self.type == "synced_block":
             synced_from = kwargs[self.type].get("synced_from")
@@ -739,7 +755,7 @@ class Block(Model):
     def get(self, with_object_type: bool = False):
         if self.type in [
             "paragraph", "quote", "heading_1", "heading_2", "heading_3", "to_do",
-            "bulleted_list_item", "numbered_list_item", "toggle", "callout", "code"
+            "bulleted_list_item", "numbered_list_item", "toggle", "callout", "code", "child_database"
         ]:
 
             text = RichTextArray.create(self.text) if isinstance(self.text, str) else self.text
@@ -750,6 +766,8 @@ class Block(Model):
                 new_dict[self.type]["language"] = getattr(self, "language", "plain text")
                 if hasattr(self, "caption"):
                     new_dict[self.type]["caption"] = self.caption.get()
+            if self.type == "child_database":
+                new_dict = {self.type: {"title": str(text)}}
             if with_object_type:
                 new_dict["object"] = "block"
                 new_dict["type"] = self.type
@@ -839,7 +857,7 @@ class LinkTo(object):
     """
 
     def __init__(
-            self, block: Optional[Block] = None, from_object: Optional[Block, Page, Database] = None, **kwargs
+            self, block: Optional[Model] = None, from_object: Optional[Block, Page, Database] = None, **kwargs
     ):
         """
         Creates LinkTo object from API dict
@@ -862,8 +880,9 @@ class LinkTo(object):
             elif isinstance(from_object, Database):
                 self.type = "database_id"
             elif isinstance(from_object, Block):
-                # `block_id` does not exist in API schema yet
                 self.type = "block_id"
+            elif isinstance(from_object, User):
+                self.type = "user_id"
         else:
             self.type: str = kwargs.get("type")
             self.id: str = kwargs.get(self.type) if kwargs.get(self.type) else kwargs.get("id")
@@ -877,6 +896,8 @@ class LinkTo(object):
                 self.uri = "pages"
             elif self.type == "block_id":
                 self.uri = "blocks"
+            elif self.type == "user_id":
+                self.uri = "users"
             else:
                 self.uri = None
 

@@ -8,7 +8,7 @@ from datetime import datetime
 import requests
 
 import pytion.envs as envs
-from pytion.models import Property, PropertyValue
+from pytion.models import Property, PropertyValue, User
 from pytion.exceptions import find_response_error
 
 
@@ -16,7 +16,10 @@ logger = logging.getLogger(__name__)
 
 
 class Filter(object):
-    _filter_condition_types = ["rich_text", "number", "checkbox", "select", "multi_select", "date", "phone_number"]
+    _filter_condition_types = [
+        "rich_text", "number", "checkbox", "select", "multi_select", "date", "phone_number", "people", "title",
+        "created_time", "last_edited_time", "phone_number"
+    ]
 
     def __init__(
             self,
@@ -54,20 +57,32 @@ class Filter(object):
             self.value = str(value)
         elif self.property_type == "number":
             self.condition = "equals" if not condition else condition
-            self.value = int(value)
+            if "." in value:
+                self.value = float(value)
+            else:
+                self.value = int(value)
         elif self.property_type == "checkbox":
             self.condition = "equals" if not condition else condition
-            self.value = bool(value)
+            self.value = bool(value) if value else True
         elif self.property_type == "select":
             self.condition = "equals" if not condition else condition
             self.value = str(value)
         elif self.property_type == "multi_select":
             self.condition = "contains" if not condition else condition
-            self.value = str(value)
+            self.value = value[0] if isinstance(value, list) else str(value)
         elif self.property_type == "phone_number":
             self.condition = "contains" if not condition else condition
             self.value = str(value)
-        elif self.property_type == "date":
+        elif self.property_type == "people":
+            self.condition = "contains" if not condition else condition
+            if isinstance(value, User):
+                self.value = value.id
+            else:
+                self.value = str(value)
+        elif self.property_type == "title":
+            self.condition = "contains" if not condition else condition
+            self.value = str(value)
+        elif self.property_type == "date" or "_time" in self.property_type:
             self.condition = "equals" if not condition else condition
             if isinstance(value, datetime):
                 if not value.hour and not value.minute:
@@ -79,11 +94,12 @@ class Filter(object):
 
         if property_obj and not value:
             self.value = getattr(property_obj, "value", None)
-        if self.condition in [
-            "is_empty", "is_not_empty", "past_week", "past_month", "past_year", "next_week", "next_month", "next_year"
-        ]:
+            if isinstance(self.value, list):
+                self.value = self.value[0]
+        if self.condition in ["is_empty", "is_not_empty"]:
             self.value = True
-
+        elif self.condition in ["past_week", "past_month", "past_year", "next_week", "next_month", "next_year"]:
+            self.value = {}
         self.filter = {
             "property": self.property_name,
             self.property_type: {self.condition: self.value}
@@ -134,6 +150,8 @@ class Request(object):
         self.session = requests.Session()
         self.base = base if base else envs.NOTION_URL
         self._token = token if token else envs.NOTION_SECRET
+        if not self._token:
+            logger.error("Token is not provided or file `token` is not found!")
         self.version = envs.NOTION_VERSION
         self.auth = {"Authorization": "Bearer " + self._token}
         self.headers = {"Notion-Version": self.version, **self.auth}
