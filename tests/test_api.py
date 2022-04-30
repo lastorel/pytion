@@ -549,3 +549,23 @@ class TestElement:
         for block in blocks.obj:
             removed_block = no.blocks.block_update(block.id, archived=True)
             assert removed_block.obj.archived is True
+
+    def test_from_linkto__base(self, no):
+        link = LinkTo.create(page_id="878d628488d94894ab14f9b872cd6870")
+        page = no.pages.from_linkto(link)
+        assert isinstance(page.obj, Block)
+        assert page.obj.id == "878d628488d94894ab14f9b872cd6870"
+        assert str(page.obj.text) == "Pytion Tests"
+
+    def test_from_linkto__child(self, page_some_texts):
+        child = page_some_texts.from_linkto(page_some_texts.obj.children)
+        assert isinstance(child.obj, BlockArray)
+        assert len(child.obj) == 3
+        assert isinstance(child.obj[0], Block)
+
+    def test_from_linkto__parent(self, no, little_database):
+        page = no.pages.get("b85877eaf7bf4245a8c5218055eeb81f")  # Parent testing page
+        parent = page.from_linkto(page.obj.parent)
+        assert isinstance(parent.obj, Database)
+        assert parent.obj.id == little_database.obj.id
+        assert str(parent.obj.title) == str(little_database.obj.title)
