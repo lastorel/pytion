@@ -577,7 +577,7 @@ class Block(Model):
         elif "heading" in self.type:
             indent = self.type.split("_")[-1]
             indent_num = int(indent) if indent.isdigit() else 0
-            prefix = "#" * indent_num + " "
+            prefix = "#" * indent_num
             self.text = RichTextArray.create(prefix) + RichTextArray(kwargs[self.type].get("rich_text"))
 
         elif self.type == "callout":
@@ -586,22 +586,22 @@ class Block(Model):
             # Callout Block does not contain `children` attr (watch Docs)
 
         elif self.type == "quote":
-            self.text = RichTextArray.create("| ") + RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create("|") + RichTextArray(kwargs[self.type].get("rich_text"))
             # Quote Block does not contain `children` attr (watch Docs)
 
         elif "list_item" in self.type:
-            self.text = RichTextArray.create("- ") + RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create("-") + RichTextArray(kwargs[self.type].get("rich_text"))
             # Block does not contain `children` attr (watch Docs)
             # Numbers does not support cause of lack of relativity
 
         elif self.type == "to_do":
             self.checked: bool = kwargs[self.type].get("checked")
-            prefix = "[x] " if self.checked else "[ ] "
+            prefix = "[x]" if self.checked else "[ ]"
             self.text = RichTextArray.create(prefix) + RichTextArray(kwargs[self.type].get("rich_text"))
             # To-do Block does not contain `children` attr (watch Docs)
 
         elif self.type == "toggle":
-            self.text = RichTextArray.create("> ") + RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create(">") + RichTextArray(kwargs[self.type].get("rich_text"))
             # Toggle Block does not contain `children` attr (watch Docs)
 
         elif self.type == "code":
@@ -723,7 +723,7 @@ class Block(Model):
             self.text = "*Table of contents*"
 
         elif self.type == "template":
-            self.text = RichTextArray.create("Template: ") + RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create("Template:") + RichTextArray(kwargs[self.type].get("rich_text"))
 
         elif self.type == "synced_block":
             synced_from = kwargs[self.type].get("synced_from")

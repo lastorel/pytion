@@ -498,3 +498,54 @@ class TestElement:
 
         old_page = page.page_update(archived=False)
         assert old_page.obj.archived is False
+
+    def test_block_update__rename(self, no):
+        block = no.blocks.get("08326405c2924ccc929bd78ceb70a2f3")  # Paragraph block to update.
+        old_name = str(block.obj.text)
+        new_name = old_name + old_name
+        new_block = block.block_update(new_text=new_name)
+        assert isinstance(new_block.obj, Block)
+        assert str(new_block.obj.text) == new_name
+
+        old_block = new_block.block_update(new_text=old_name)
+        assert str(old_block.obj.text) == old_name
+
+    def test_block_update__delete(self, no):
+        block = no.blocks.get("08326405c2924ccc929bd78ceb70a2f3")  # Paragraph block to update.
+        new_block = block.block_update(archived=True)
+        assert isinstance(new_block.obj, Block)
+        assert new_block.obj.archived is True
+
+        old_block = new_block.block_update(archived=False)
+        assert old_block.obj.archived is False
+
+    def test_block_append__single(self, no):
+        page = no.pages.get("365985ab349149d7826035fd46858b3f")  # Page for creating blocks
+        my_block = Block.create("Such wow!")
+        blocks = page.block_append(block=my_block)
+        assert isinstance(blocks.obj, BlockArray)
+
+        blocks = page.get_block_children()
+        assert len(blocks.obj) == 1
+        assert str(blocks.obj[0].text) == "Such wow!"
+        remove_block = blocks.from_object(blocks.obj[0])
+        removed_block = remove_block.block_update(archived=True)
+        assert removed_block.obj.archived is True
+
+    def test_block_append__many(self, no):
+        my_block1 = Block.create("Do simple tests", type_="to_do", checked=True)
+        my_block2 = Block.create(
+            "multiline:\n  code: text", type_="code", caption="is it YAML?", language="yaml"
+        )
+        blocks = no.blocks.block_append("365985ab349149d7826035fd46858b3f", blocks=[my_block1, my_block2])
+        assert isinstance(blocks.obj, BlockArray)
+
+        blocks = no.pages.get_block_children("365985ab349149d7826035fd46858b3f")
+        assert len(blocks.obj) == 2
+        assert str(blocks.obj[0].text) == "[x] Do simple tests"
+        assert str(blocks.obj[1].caption) == "is it YAML?"
+        assert blocks.obj[1].language == "yaml"
+
+        for block in blocks.obj:
+            removed_block = no.blocks.block_update(block.id, archived=True)
+            assert removed_block.obj.archived is True

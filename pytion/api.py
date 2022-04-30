@@ -432,6 +432,7 @@ class Element(object):
         Updates text of Block.
         `text`, `checked` (`to_do` type), `language` (`code` type) fields support only!
         You can modify any attrs of existing block and provide it (Block object) to this func.
+        Changing the Block type is not supported.
 
         :param id_:         ID of block to change text OR
         :param block_obj:   modified Block (replace mode only)
