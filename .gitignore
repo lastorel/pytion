@@ -7,3 +7,5 @@ misc*
 *.log
 .pytest*
 conftest.py
+dist/
+*.egg-info/
