@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="pytion",
-    version="1.2rc1",
+    version="1.2",
     author="Yegor Gomzin",
     author_email="slezycmex@mail.ru",
     description="Unofficial Python client for official Notion API",

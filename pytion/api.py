@@ -36,6 +36,8 @@ class Notion(object):
         return self.__repr__()
 
     def __getattr__(self, name):
+        if name in dir(self):
+            return self.name
         return Element(self, name)
 
 

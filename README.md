@@ -1,16 +1,18 @@
 # pytion
 
-Unofficial Python client for official Notion API (for internal integrations only)
+Independent unofficial Python client for the official Notion API (for internal integrations only)
 
 Supports Notion API version = **"2022-02-22"**
 
 Works with **Python 3.8+**
 
+_*does not use notion-client-sdk_
+
 ## Quick start
 
-There is no package yet. Clone repo.
+`pip install pytion`
 
-Create new integration and get your Notion API Token at notion.so -> /my-integrations
+Create new integration and get your Notion API Token at notion.so -> [here](https://www.notion.com/my-integrations)
 
 Invite your new integration 'manager' to your Notion workspace or particular pages.
 
@@ -77,11 +79,9 @@ some text
 
 `.from_linkto(linkto)` - Creates new Element object based on LinkTo information.
 
-`.from_object(model)` - Creates new Element object from Page, Block or Database object.
+`.from_object(model)` - Creates new Element object from Page, Block or Database object. Usable while Element object contains an Array.
 
-Usable while Element object contains an Array.
-
-More details and examples of this methods you can see into func descriptions.
+> More details and examples of this methods you can see into func descriptions.
 
 ### pytion.models.*
 
@@ -144,7 +144,7 @@ Extension attributes are listed below in support matrix:
 | `breadcrumb` | Empty Block actually | + | - | - |  |
 | `unsupported` | Blocks unsupported by API | + | - | - |  |
 
-API converts **toggle heading** Block to simple heading Block.
+> API converts **toggle heading** Block to simple heading Block.
 
 ### Block creating examples
 
