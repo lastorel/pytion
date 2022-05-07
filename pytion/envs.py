@@ -30,4 +30,4 @@ LOGGING_FILE = None
 # 2020-08-12T02:12:33.231+00:00
 # 2020-08-12
 
-# empty strings DOES NOT supported. use `None` (python) or `null` (JSON)
+# empty strings ARE NOT supported. use `None` (python) or `null` (JSON)
