@@ -6,7 +6,7 @@ Supports Notion API version = **"2022-02-22"**
 
 Works with **Python 3.8+**
 
-_*does not use notion-client-sdk_
+_*does not use notion-sdk-py client_
 
 ## Quick start
 
@@ -106,6 +106,7 @@ Every Block has mandatory attributes and extension attributes. There are mandato
 - `has_children: bool` - does the block have children blocks (from API)
 - `archived: bool` - does the block marked as deleted (from API)
 - `text: Union[str, RichTextArray]` - **main content**
+- `plain_text: str` - only simple text string
 
 Extension attributes are listed below in support matrix:
 

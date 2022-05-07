@@ -4,6 +4,8 @@ from datetime import datetime
 from typing import Optional, Dict, Union, List, Any
 from collections.abc import MutableSequence
 
+from pytion.envs import NOTION_URL
+
 
 # I wanna use pydantic, but API provide variable names of property
 
@@ -548,6 +550,7 @@ class Block(Model):
         :param has_children:
         :param type:
         :param archived:
+        :param create_mode:
         """
         super().__init__(**kwargs)
         self.type: str = kwargs.get("type")
@@ -557,6 +560,7 @@ class Block(Model):
         self._level = kwargs["level"] if kwargs.get("level") else 0
         self.create_mode: bool = kwargs["create_mode"] if "create_mode" in kwargs else False
         self.parent = None
+        self._plain_text = ""
 
         if self.create_mode:
             self.text = kwargs[self.type]
@@ -572,40 +576,48 @@ class Block(Model):
 
         if self.type == "paragraph":
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
-            # Paragraph Block does not contain `children` attr (watch Docs)
+            self._plain_text = str(self.text)
 
         elif "heading" in self.type:
             indent = self.type.split("_")[-1]
             indent_num = int(indent) if indent.isdigit() else 0
             prefix = "#" * indent_num
-            self.text = RichTextArray.create(prefix) + RichTextArray(kwargs[self.type].get("rich_text"))
+            r_text = RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create(prefix) + r_text
+            self._plain_text = str(r_text)
 
         elif self.type == "callout":
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
+            self._plain_text = str(self.text)
             self.icon: Dict = kwargs[self.type].get("icon")
-            # Callout Block does not contain `children` attr (watch Docs)
 
         elif self.type == "quote":
-            self.text = RichTextArray.create("|") + RichTextArray(kwargs[self.type].get("rich_text"))
-            # Quote Block does not contain `children` attr (watch Docs)
+            r_text = RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create("|") + r_text
+            self._plain_text = str(r_text)
 
         elif "list_item" in self.type:
-            self.text = RichTextArray.create("-") + RichTextArray(kwargs[self.type].get("rich_text"))
-            # Block does not contain `children` attr (watch Docs)
+            r_text = RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create("-") + r_text
+            self._plain_text = str(r_text)
             # Numbers does not support cause of lack of relativity
 
         elif self.type == "to_do":
             self.checked: bool = kwargs[self.type].get("checked")
             prefix = "[x]" if self.checked else "[ ]"
-            self.text = RichTextArray.create(prefix) + RichTextArray(kwargs[self.type].get("rich_text"))
-            # To-do Block does not contain `children` attr (watch Docs)
+            r_text = RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create(prefix) + r_text
+            self._plain_text = str(r_text)
 
         elif self.type == "toggle":
-            self.text = RichTextArray.create(">") + RichTextArray(kwargs[self.type].get("rich_text"))
-            # Toggle Block does not contain `children` attr (watch Docs)
+            r_text = RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create(">") + r_text
+            self._plain_text = str(r_text)
 
         elif self.type == "code":
-            self.text = RichTextArray.create("```\n") + RichTextArray(kwargs[self.type].get("rich_text")) + "\n```"
+            r_text = RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create("```\n") + r_text + "\n```"
+            self._plain_text = str(r_text)
             self.language: str = kwargs[self.type].get("language")
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
 
@@ -613,14 +625,17 @@ class Block(Model):
         # when the block is child_database, parent AND children will be the database object
         elif "child" in self.type:
             self.text: str = kwargs[self.type].get("title")
+            self._plain_text = str(self.text)
             if self.type == "child_page":
                 # self.children is already set
                 self.parent = LinkTo(type="page", page=self.id)
+                self._plain_text = str(self.parent.link)
             elif self.type == "child_database":
                 # well yes. parent and children are the same. parent of this database will be the page of this block
                 # and the database is children of this block
                 self.parent = LinkTo.create(database_id=self.id)
                 self.children = LinkTo.create(database_id=self.id)
+                self._plain_text = str(self.parent.link)
                 if not self.text:
                     self.text = repr(self.children)
             # page self.has_children is correct. checked.
@@ -630,10 +645,12 @@ class Block(Model):
         # hello, markdown
         elif self.type == "embed":
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
+            text = kwargs[self.type].get("url")
+            self._plain_text = str(text)
             if self.caption:
-                self.text = f'[{self.caption}]({kwargs[self.type].get("url")})'
+                self.text = f'[{self.caption}]({text})'
             else:
-                self.text = f'<{kwargs[self.type]["url"]}>' if kwargs[self.type].get("url") else "*Empty embed*"
+                self.text = f'<{text}>' if text else "*Empty embed*"
 
         elif self.type == "image":
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
@@ -644,12 +661,15 @@ class Block(Model):
             else:
                 self.expiry_time = None
             if subtype in ("file", "external"):
+                text = kwargs[self.type][subtype].get("url")
+                self._plain_text = str(text)
                 if self.caption:
-                    self.text = f'[{self.caption}]({kwargs[self.type][subtype].get("url")})'
+                    self.text = f'[{self.caption}]({text})'
                 else:
-                    self.text = f'<{kwargs[self.type][subtype].get("url")}>'
+                    self.text = f'<{text}>'
             else:
                 self.text = "*Unknown image type*"
+                self._plain_text = "None"
 
         elif self.type == "video":
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
@@ -659,12 +679,15 @@ class Block(Model):
             else:
                 self.expiry_time = None
             if subtype in ("file", "external"):
+                text = kwargs[self.type][subtype].get("url")
+                self._plain_text = str(text)
                 if self.caption:
-                    self.text = f'[{self.caption}]({kwargs[self.type][subtype].get("url")})'
+                    self.text = f'[{self.caption}]({text})'
                 else:
-                    self.text = f'<{kwargs[self.type][subtype].get("url")}>'
+                    self.text = f'<{text}>'
             else:
                 self.text = "*Unknown video type*"
+                self._plain_text = "None"
 
         elif self.type == "file":
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
@@ -674,12 +697,15 @@ class Block(Model):
             else:
                 self.expiry_time = None
             if subtype in ("file", "external"):
+                text = kwargs[self.type][subtype].get("url")
+                self._plain_text = str(text)
                 if self.caption:
-                    self.text = f'[{self.caption}]({kwargs[self.type][subtype].get("url")})'
+                    self.text = f'[{self.caption}]({text})'
                 else:
-                    self.text = f'<{kwargs[self.type][subtype].get("url")}>'
+                    self.text = f'<{text}>'
             else:
                 self.text = "*Unknown file type*"
+                self._plain_text = "None"
 
         elif self.type == "pdf":
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
@@ -689,62 +715,83 @@ class Block(Model):
             else:
                 self.expiry_time = None
             if subtype in ("file", "external"):
+                text = kwargs[self.type][subtype].get("url")
+                self._plain_text = str(text)
                 if self.caption:
-                    self.text = f'[{self.caption}]({kwargs[self.type][subtype].get("url")})'
+                    self.text = f'[{self.caption}]({text})'
                 else:
-                    self.text = f'<{kwargs[self.type][subtype].get("url")}>'
+                    self.text = f'<{text}>'
             else:
                 self.text = "*Unknown pdf type*"
+                self._plain_text = "None"
 
         elif self.type == "breadcrumb":
             self.text = "*breadcrumb block*"
+            self._plain_text = "None"
 
         elif self.type == "bookmark":
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
+            text = kwargs[self.type].get("url")
+            self._plain_text = str(text)
             if self.caption:
-                self.text = f'[{self.caption}]({kwargs[self.type].get("url")})'
+                self.text = f'[{self.caption}]({text})'
             else:
-                self.text = f'<{kwargs[self.type]["url"]}>' if kwargs[self.type].get("url") else "*Empty bookmark*"
+                self.text = f'<{text}>' if text else "*Empty bookmark*"
 
         elif self.type == "link_preview":
-            self.text = f'<{kwargs[self.type].get("url")}>'
+            text = kwargs[self.type].get("url")
+            self._plain_text = str(text)
+            self.text = f'<{text}>'
 
         elif self.type == "link_to_page":
             self.link = LinkTo(**kwargs[self.type])
             self.text = repr(self.link)
+            self._plain_text = str(self.link.link)
 
         elif self.type == "equation":
             self.text: str = kwargs[self.type].get("expression")
+            self._plain_text = str(self.text)
 
         elif self.type == "divider":
             self.text = "---"
+            self._plain_text = "None"
 
         elif self.type == "table_of_contents":
             self.text = "*Table of contents*"
+            self._plain_text = "None"
 
         elif self.type == "template":
-            self.text = RichTextArray.create("Template:") + RichTextArray(kwargs[self.type].get("rich_text"))
+            r_text = RichTextArray(kwargs[self.type].get("rich_text"))
+            self.text = RichTextArray.create("Template:") + r_text
+            self._plain_text = str(r_text)
 
         elif self.type == "synced_block":
             synced_from = kwargs[self.type].get("synced_from")
             self.text = "*SYNCED BLOCK:*"
+            self._plain_text = "None"
             self.synced_from = LinkTo(**synced_from) if synced_from else None
 
         elif self.type == "table":
             self.table_width: int = kwargs[self.type].get("table_width")
             self.text = f"*Table {self.table_width}xN:*"
+            self._plain_text = "None"
 
         elif self.type == "table_row":
             cells = kwargs[self.type].get("cells")
             self.text = RichTextArray.create("|")
             for cell in cells:
-                self.text += RichTextArray(cell) + "|"
+                text_cell = RichTextArray(cell)
+                self._plain_text += f"\"{text_cell}\","
+                self.text += text_cell + "|"
+            self._plain_text = self._plain_text.strip(",")
 
         elif self.type == "unsupported":
             self.text = "*****"
+            self._plain_text = "None"
 
         else:
             self.text = "*UNKNOWN_BLOCK_TYPE*"
+            self._plain_text = "None"
 
     def __str__(self):
         return str(self.text)
@@ -773,6 +820,14 @@ class Block(Model):
                 new_dict["type"] = self.type
             return new_dict
         return None
+
+    @property
+    def plain_text(self) -> str:
+        if self._plain_text:
+            return self._plain_text if self._plain_text != "None" else ""
+        if getattr(self, "text", None):
+            return str(self.text)
+        return self._plain_text
 
     @classmethod
     def create(cls, text: str, type_: str = "paragraph", **kwargs):
@@ -912,6 +967,10 @@ class LinkTo(object):
 
     def __repr__(self):
         return f"LinkTo({self})"
+
+    @property
+    def link(self) -> str:
+        return NOTION_URL + str(self)
 
     def get(self, without_type: bool = False):
         if without_type:
