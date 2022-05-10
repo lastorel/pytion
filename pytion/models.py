@@ -941,6 +941,8 @@ class LinkTo(object):
         else:
             self.type: str = kwargs.get("type")
             self.id: str = kwargs.get(self.type) if kwargs.get(self.type) else kwargs.get("id")
+            if self.type == "workspace":
+                self.id = ""
             self.after_path = ""
             if self.type == "page_id":
                 self.uri = "blocks"
@@ -973,6 +975,8 @@ class LinkTo(object):
         return NOTION_URL + str(self)
 
     def get(self, without_type: bool = False):
+        if self.type == "workspace":
+            return {"type": "workspace", "workspace": True}
         if without_type:
             return {self.type: self.id}
         return {"type": self.type, self.type: self.id}
@@ -982,6 +986,7 @@ class LinkTo(object):
         """
         `.create(page_id="123412341234")`
         `.create(database_id="13412341234")`
+        `.create(workspace=True)`
         """
         for key, value in kwargs.items():
             return cls(type=key, id=value)

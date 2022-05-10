@@ -14,7 +14,7 @@ _*does not use notion-sdk-py client_
 
 Create new integration and get your Notion API Token at notion.so -> [here](https://www.notion.com/my-integrations)
 
-Invite your new integration 'manager' to your Notion workspace or particular pages.
+Invite your new integration 'manager' to your pages or databases.
 
 `from pytion import Notion; no = Notion(token=SOME_TOKEN)`
 
@@ -88,6 +88,8 @@ some text
 There are user classmethods for models:
 
 `RichTextArray.create()`, `Property.create()`, `PropertyValue.create()`, `Database.create()`, `Page.create()`, `Block.create()`, `LinkTo.create()`, `User.create()`
+
+And every model has a `.get()` method that returns API friendly JSON.
 
 ### Supported block types
 
