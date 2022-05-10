@@ -148,13 +148,14 @@ class Request(object):
             sorts: Optional[Sort] = None,
     ):
         self.session = requests.Session()
+        self.session.headers["accept"] = "application/json"
         self.base = base if base else envs.NOTION_URL
         self._token = token if token else envs.NOTION_SECRET
         if not self._token:
             logger.error("Token is not provided or file `token` is not found!")
         self.version = envs.NOTION_VERSION
         self.auth = {"Authorization": "Bearer " + self._token}
-        self.headers = {"Notion-Version": self.version, **self.auth}
+        self.session.headers.update({"Notion-Version": self.version, **self.auth})
         self.result = None
 
         if method:
@@ -190,7 +191,7 @@ class Request(object):
         logger.debug(f"METHOD: {method.upper()}")
         logger.debug(f"URL: {url}")
         logger.debug(f"DATA: {data}")
-        result = self.session.request(method=method, url=url, headers=self.headers, json=data)
+        result = self.session.request(method=method, url=url, json=data)
         logger.debug(f"STATUS CODE: {result.status_code}")
         logger.debug(f"CONTENT: {result.content}")
         logger.info(f"{result.status_code} Received")
