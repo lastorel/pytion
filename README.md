@@ -1,26 +1,33 @@
 # pytion
 
-Independent unofficial Python client for the official Notion API (for internal integrations only)
+[![PyPI](https://img.shields.io/pypi/v/pytion.svg)](https://pypi.org/project/pytion)
+![PyVersion](https://img.shields.io/pypi/pyversions/pytion)
+![CodeSize](https://img.shields.io/github/languages/code-size/lastorel/pytion)
+[![LICENSE](https://img.shields.io/github/license/lastorel/pytion)](LICENSE)
 
-Supports Notion API version = **"2022-02-22"**
+Independent unofficial **Python client** for the official **Notion API** (for internal integrations only)
 
-Works with **Python 3.8+**
+Client is built with own its object model based on API
+
+Current Notion API version = **"2022-02-22"**
 
 _*does not use notion-sdk-py client_
 
 ## Quick start
 
-`pip install pytion`
+```
+pip install pytion
+```
 
-Create new integration and get your Notion API Token at notion.so -> [here](https://www.notion.com/my-integrations)
+Create new integration and get your Notion API Token at notion.so -> [here](https://www.notion.com/my-integrations). Invite your new integration 'manager' to your pages or databases.
 
-Invite your new integration 'manager' to your Notion workspace or particular pages.
-
-`from pytion import Notion; no = Notion(token=SOME_TOKEN)`
+```python
+from pytion import Notion; no = Notion(token=SOME_TOKEN)
+```
 
 Or put your token for Notion API into file `token` at script directory and use simple `no = Notion()`
 
-```
+```python
 from pytion import Notion
 no = Notion(token=SOME_TOKEN)
 page = no.pages.get("PAGE ID")
@@ -29,20 +36,38 @@ pages = database.db_filter(property_name="Done", property_type="checkbox", value
 ```
 
 ```
-In [12]: no = Notion(token=SOME_TOKEN)
+In [1]: from pytion import Notion
 
-In [13]: my_page = no.blocks.get("7584bc0bfb3b409cb17f957e51c9188a")
+In [2]: no = Notion(token=SOME_TOKEN)
 
-In [14]: blocks = my_page.get_block_children_recursive()
+In [3]: page = no.pages.get("a458613160da45fa96367c8a594297c7")
+In [4]: print(page)
+Notion/pages/Page(Example page)
 
-In [15]: print(blocks)
-Notion/blocks/BlockArray(Heading 2 level Paragraph      blo)
+In [5]: blocks = page.get_block_children_recursive()
 
-In [16]: print(blocks.obj)
-Heading 2 level
-Paragraph
-        block inside block
-some text
+In [6]: print(blocks)
+Notion/blocks/BlockArray(## Migration planning [x] Rese)
+
+In [7]: print(blocks.obj)
+## Migration planning
+[x] Reset new switch 2022-05-12T00:00:00.000+03:00 → 2022-05-13T01:00:00.000+03:00 
+	- reboot
+	- hold reset button
+[x] Connect to console with baud rate 9600
+[ ] Skip default configuration dialog
+Use LinkTo(configs) 
+[Integration changes](https://developers.notion.com/changelog?page=2)
+
+In [8]: print(blocks.obj.simple)
+Migration planning
+Reset new switch 2022-05-12T00:00:00.000+03:00 → 2022-05-13T01:00:00.000+03:00 
+	reboot
+	hold reset button
+Connect to console with baud rate 9600
+Skip default configuration dialog
+Use https://api.notion.com/v1/pages/90ea1231865f4af28055b855c2fba267 
+https://developers.notion.com/changelog?page=2
 ```
 
 ## Available methods
@@ -89,6 +114,8 @@ There are user classmethods for models:
 
 `RichTextArray.create()`, `Property.create()`, `PropertyValue.create()`, `Database.create()`, `Page.create()`, `Block.create()`, `LinkTo.create()`, `User.create()`
 
+And every model has a `.get()` method that returns API friendly JSON.
+
 ### Supported block types
 
 At present the API only supports the block types which are listed in the reference below. Any unsupported block types will continue to appear in the structure, but only contain a `type` set to `"unsupported"`.
@@ -106,7 +133,7 @@ Every Block has mandatory attributes and extension attributes. There are mandato
 - `has_children: bool` - does the block have children blocks (from API)
 - `archived: bool` - does the block marked as deleted (from API)
 - `text: Union[str, RichTextArray]` - **main content**
-- `plain_text: str` - only simple text string
+- `simple: str` - only simple text string (url expanded)
 
 Extension attributes are listed below in support matrix:
 
@@ -151,7 +178,7 @@ Extension attributes are listed below in support matrix:
 
 Create `paragraph` block object and add it to Notion:
 
-```
+```python
 from pytion.models import Block
 my_text_block = Block.create("Hello World!")
 my_text_block = Block.create(text="Hello World!", type_="paragraph")  # the same
@@ -169,7 +196,7 @@ my_page.block_append(block=my_text_block)
 
 Create `to_do` block object:
 
-```
+```python
 from pytion.models import Block
 my_todo_block = Block.create("create readme documentation", type_="to_do")
 my_todo_block2 = Block.create("add 'create' method", type_="to_do", checked=True)
@@ -177,7 +204,7 @@ my_todo_block2 = Block.create("add 'create' method", type_="to_do", checked=True
 
 Create `code` block object:
 
-```
+```python
 from pytion.models import Block
 my_code_block = Block.create("code example here", type_="code", language="javascript")
 my_code_block2 = Block.create("another code example", type_="code", caption="it will be plain text code block with caption")
@@ -187,7 +214,7 @@ my_code_block2 = Block.create("another code example", type_="code", caption="it 
 
 Logging is muted by default. To enable to stdout and/or to file:
 
-```
+```python
 from pytion import setup_logging
 
 setup_logging(level="debug", to_console=True, filename="pytion.log")

@@ -291,7 +291,7 @@ class Element(object):
         """
         :param database_obj:  you can provide `Database` object or -
                               provide the params for creating it:
-        :param parent:
+        :param parent:        parent object in LinkTo format. workspace can not be a parent
         :param properties:    dict of properties. Property with `title` type is mandatory!
         :param title:         your name of the Database
         :return:              self.obj -> Database
@@ -366,7 +366,7 @@ class Element(object):
         """
         :param page_obj:      you can provide `Page` object or -
                               provide the params for creating it:
-        :param parent:        LinkTo object with ID of parent element
+        :param parent:        LinkTo object with ID of parent element. workspace can not be a parent
         :param properties:    Dict of properties with values
         :param title:         New title
         :param children:      Content of new page in [Block] or BlockArray format
