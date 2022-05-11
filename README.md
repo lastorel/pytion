@@ -2,7 +2,9 @@
 
 Independent unofficial Python client for the official Notion API (for internal integrations only)
 
-Supports Notion API version = **"2022-02-22"**
+Client is built with own its object model based on API
+
+Current Notion API version = **"2022-02-22"**
 
 Works with **Python 3.8+**
 
@@ -10,13 +12,15 @@ _*does not use notion-sdk-py client_
 
 ## Quick start
 
-`pip install pytion`
+```
+pip install pytion
+```
 
-Create new integration and get your Notion API Token at notion.so -> [here](https://www.notion.com/my-integrations)
+Create new integration and get your Notion API Token at notion.so -> [here](https://www.notion.com/my-integrations). Invite your new integration 'manager' to your pages or databases.
 
-Invite your new integration 'manager' to your pages or databases.
-
-`from pytion import Notion; no = Notion(token=SOME_TOKEN)`
+```
+from pytion import Notion; no = Notion(token=SOME_TOKEN)
+```
 
 Or put your token for Notion API into file `token` at script directory and use simple `no = Notion()`
 
@@ -108,7 +112,7 @@ Every Block has mandatory attributes and extension attributes. There are mandato
 - `has_children: bool` - does the block have children blocks (from API)
 - `archived: bool` - does the block marked as deleted (from API)
 - `text: Union[str, RichTextArray]` - **main content**
-- `plain_text: str` - only simple text string
+- `simple: str` - only simple text string (url expanded)
 
 Extension attributes are listed below in support matrix:
 
