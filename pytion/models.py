@@ -626,9 +626,10 @@ class Block(Model):
 
         elif self.type == "code":
             r_text = RichTextArray(kwargs[self.type].get("rich_text"))
-            self.text = RichTextArray.create("```\n") + r_text + "\n```"
-            self._plain_text = r_text.simple
             self.language: str = kwargs[self.type].get("language")
+            prefix = RichTextArray.create(f"```{self.language}\n") if self.language else RichTextArray.create("```\n")
+            self.text = prefix + r_text + "\n```"
+            self._plain_text = r_text.simple
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
 
         # when the block is child_page, parent will be the page object
