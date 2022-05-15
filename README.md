@@ -9,12 +9,23 @@ Independent unofficial **Python client** for the official **Notion API** (for in
 
 Client is built with its own object model based on API
 
-So if you are using **notion.so** and want to automate some stuff with the original API, you're welcome!
+So if you are using **notion.so** and want to automate some stuff with the original API, you're welcome!  
 You can read any available data, create basic models, and even work with databases.
 
 Current Notion API version = **"2022-02-22"**
 
 _*does not use notion-sdk-py client_
+
+# Contents
+
+1. [Quick Start](#quick-start)
+2. [Pytion API](#pytion-api)
+   1. [pytion.api.Element](#pytionapielement)
+3. [Models](#models)
+   1. [pytion.models](#pytionmodels)
+   2. [Supported block types](#supported-block-types)
+   3. [Block creating examples](#block-creating-examples)
+4. [Logging](#logging)
 
 ## Quick start
 
@@ -22,7 +33,8 @@ _*does not use notion-sdk-py client_
 pip install pytion
 ```
 
-Create new integration and get your Notion API Token at notion.so -> [here](https://www.notion.com/my-integrations). Invite your new integration 'manager' to your pages or databases.
+Create new integration and get your Notion API Token at notion.so -> [here](https://www.notion.com/my-integrations).  
+Invite your new integration 'manager' to your pages or databases.
 
 ```python
 from pytion import Notion; no = Notion(token=SOME_TOKEN)
@@ -99,7 +111,7 @@ so:
 
 and if you want to retrieve a database - you must use _"databases"_ URI
 
-```
+```python
 database = no.databases.get("123412341234")
 ```
 
@@ -110,7 +122,7 @@ and the same applies for _"blocks"_ and _"users"_. Valid URI-s are:
 - _databases_
 - _users_
 
-when you work with existing `Element` object like `page` above, all methods below will be applied to this Page:
+When you work with existing `Element` object like `page` above, all [methods](#pytionapielement) below will be applied to this Page:
 
 ```python
 new_page = page.page_update(title="new page name 2")
@@ -122,7 +134,7 @@ new_page = page.page_update(title="new page name 2")
 
 ### pytion.api.Element
 
-There is a list of available methods for communicate with **api.notion.com**. These methods are better structured in next chapter.
+There is a list of available methods for communicate with **api.notion.com**. These methods are better structured in [next chapter](#pytionmodels).
 
 `.get(id_)` - Get Element by ID.
 
@@ -184,7 +196,7 @@ There are classes **based on API** structures:
   - use `.get_block_children_recursive()` to get page content with nested blocks
   - use `.get_page_property()` to retrieve the specific `PropertyValue` of the page
 - `Block` based on [Block object](https://developers.notion.com/reference/block)
-  - You can create object `Block.create(...)` of specific type from _support matrix_ below and then use it while creating pages or appending
+  - You can create object `Block.create(...)` of specific type from [_support matrix_](#supported-block-types) below and then use it while creating pages or appending
   - use `.block_update()` to replace content or change _extension attributes_ or delete the block
   - use `.block_append()` to add a new block to a page or add a nested block to another block
   - use `.get_block_children()` to get first level nested blocks
