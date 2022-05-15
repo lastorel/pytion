@@ -9,7 +9,6 @@ from pytion.envs import NOTION_URL
 
 # I wanna use pydantic, but API provide variable names of property
 
-
 class RichText(object):
     def __init__(self, **kwargs) -> None:
         self.plain_text: str = kwargs.get("plain_text")
@@ -18,11 +17,13 @@ class RichText(object):
         # if not self.annotations:
         #     self._create_default_annotations()
         self.type: str = kwargs.get("type")
+        self.simple = ""
         if self.type == "mention":
             subtype = kwargs[self.type].get("type")
             if subtype == "user":
                 self.data = User(**kwargs[self.type].get(subtype))
                 self.plain_text = str(self.data)
+                self.simple = LinkTo(from_object=self.data).link
             elif subtype == "page":
                 sub_id = kwargs[self.type][subtype].get("id") if kwargs[self.type].get(subtype) else ""
                 self.data = LinkTo.create(page=sub_id)
@@ -30,6 +31,7 @@ class RichText(object):
                     self.plain_text = repr(self.data)
                 else:
                     self.plain_text = "LinkTo(" + self.plain_text + ")"
+                self.simple = self.data.link
             elif subtype == "database":
                 sub_id = kwargs[self.type][subtype].get("id") if kwargs[self.type].get(subtype) else ""
                 self.data = LinkTo.create(database_id=sub_id)
@@ -37,16 +39,20 @@ class RichText(object):
                     self.plain_text = repr(self.data)
                 else:
                     self.plain_text = "LinkTo(" + self.plain_text + ")"
+                self.simple = self.data.link
             elif subtype == "date":
                 self.data = {
                     "start": Model.format_iso_time(kwargs[self.type][subtype].get("start")),
                     "end": Model.format_iso_time(kwargs[self.type][subtype].get("end"))
                 }
+                self.simple = str(self.plain_text)
             elif subtype == "link_preview":
+                self.simple = str(self.plain_text)
                 self.plain_text = f"<{self.plain_text}>"
                 self.data: Dict = kwargs[self.type]
         else:
             self.data: Dict = kwargs[self.type]
+            self.simple = str(self.plain_text)
 
     def __str__(self):
         return str(self.plain_text)
@@ -98,7 +104,7 @@ class RichTextArray(MutableSequence):
         self.array.insert(index, value)
 
     def __str__(self):
-        return " ".join(str(rt) for rt in self)
+        return "".join(str(rt) for rt in self)
 
     def __repr__(self):
         return f"RichTextArray({str(self)})"
@@ -118,6 +124,10 @@ class RichTextArray(MutableSequence):
     @classmethod
     def create(cls, text: str):
         return cls([{"type": "text", "plain_text": text, "text": {}}])
+
+    @property
+    def simple(self) -> str:
+        return "".join(rt.simple for rt in self)
 
 
 class User(object):
@@ -236,7 +246,7 @@ class Property(object):
         Property Schema Object (watch docs)
 
         + addons:
-        set type = `None` to delete this Property
+        set type_ = `None` to delete this Property
         set param `name` to rename this Property
         """
         return cls({"type": type_, **kwargs})
@@ -423,10 +433,6 @@ class PropertyValue(Property):
     def create(cls, type_: str = "", value: Any = None, **kwargs):
         """
         Property Value Object (watch docs)
-
-        + addons:
-        set type = `None` to delete this Property
-        set param `name` to rename this Property
         """
         return cls({"type": type_, type_: value, **kwargs}, name="")
 
@@ -576,49 +582,50 @@ class Block(Model):
 
         if self.type == "paragraph":
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
-            self._plain_text = str(self.text)
+            self._plain_text = self.text.simple
 
         elif "heading" in self.type:
             indent = self.type.split("_")[-1]
             indent_num = int(indent) if indent.isdigit() else 0
-            prefix = "#" * indent_num
+            prefix = "#" * indent_num + " "
             r_text = RichTextArray(kwargs[self.type].get("rich_text"))
             self.text = RichTextArray.create(prefix) + r_text
-            self._plain_text = str(r_text)
+            self._plain_text = r_text.simple
 
         elif self.type == "callout":
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
-            self._plain_text = str(self.text)
+            self._plain_text = self.text.simple
             self.icon: Dict = kwargs[self.type].get("icon")
 
         elif self.type == "quote":
             r_text = RichTextArray(kwargs[self.type].get("rich_text"))
-            self.text = RichTextArray.create("|") + r_text
-            self._plain_text = str(r_text)
+            self.text = RichTextArray.create("| ") + r_text
+            self._plain_text = r_text.simple
 
         elif "list_item" in self.type:
             r_text = RichTextArray(kwargs[self.type].get("rich_text"))
-            self.text = RichTextArray.create("-") + r_text
-            self._plain_text = str(r_text)
+            self.text = RichTextArray.create("- ") + r_text
+            self._plain_text = r_text.simple
             # Numbers does not support cause of lack of relativity
 
         elif self.type == "to_do":
             self.checked: bool = kwargs[self.type].get("checked")
-            prefix = "[x]" if self.checked else "[ ]"
+            prefix = "[x] " if self.checked else "[ ] "
             r_text = RichTextArray(kwargs[self.type].get("rich_text"))
             self.text = RichTextArray.create(prefix) + r_text
-            self._plain_text = str(r_text)
+            self._plain_text = r_text.simple
 
         elif self.type == "toggle":
             r_text = RichTextArray(kwargs[self.type].get("rich_text"))
-            self.text = RichTextArray.create(">") + r_text
-            self._plain_text = str(r_text)
+            self.text = RichTextArray.create("> ") + r_text
+            self._plain_text = r_text.simple
 
         elif self.type == "code":
             r_text = RichTextArray(kwargs[self.type].get("rich_text"))
-            self.text = RichTextArray.create("```\n") + r_text + "\n```"
-            self._plain_text = str(r_text)
             self.language: str = kwargs[self.type].get("language")
+            prefix = RichTextArray.create(f"```{self.language}\n") if self.language else RichTextArray.create("```\n")
+            self.text = prefix + r_text + "\n```"
+            self._plain_text = r_text.simple
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
 
         # when the block is child_page, parent will be the page object
@@ -762,8 +769,8 @@ class Block(Model):
 
         elif self.type == "template":
             r_text = RichTextArray(kwargs[self.type].get("rich_text"))
-            self.text = RichTextArray.create("Template:") + r_text
-            self._plain_text = str(r_text)
+            self.text = RichTextArray.create("Template: ") + r_text
+            self._plain_text = r_text.simple
 
         elif self.type == "synced_block":
             synced_from = kwargs[self.type].get("synced_from")
@@ -778,11 +785,11 @@ class Block(Model):
 
         elif self.type == "table_row":
             cells = kwargs[self.type].get("cells")
-            self.text = RichTextArray.create("|")
+            self.text = RichTextArray.create("| ")
             for cell in cells:
                 text_cell = RichTextArray(cell)
                 self._plain_text += f"\"{text_cell}\","
-                self.text += text_cell + "|"
+                self.text += text_cell + " | "
             self._plain_text = self._plain_text.strip(",")
 
         elif self.type == "unsupported":
@@ -822,7 +829,7 @@ class Block(Model):
         return None
 
     @property
-    def plain_text(self) -> str:
+    def simple(self) -> str:
         if self._plain_text:
             return self._plain_text if self._plain_text != "None" else ""
         if getattr(self, "text", None):
@@ -893,6 +900,10 @@ class BlockArray(ElementArray):
 
     def get(self):
         return [b.get() for b in self]
+
+    @property
+    def simple(self) -> str:
+        return "\n".join(b._level * "\t" + b.simple for b in self)
 
 
 class PageArray(ElementArray):

@@ -503,7 +503,7 @@ class TestElement:
         block = no.blocks.get("08326405c2924ccc929bd78ceb70a2f3")  # Paragraph block to update.
         old_name = str(block.obj.text)
         new_name = old_name + old_name
-        new_block = block.block_update(new_text=new_name)
+        new_block = no.blocks.block_update(id_="08326405c2924ccc929bd78ceb70a2f3", new_text=new_name)
         assert isinstance(new_block.obj, Block)
         assert str(new_block.obj.text) == new_name
 
@@ -518,6 +518,23 @@ class TestElement:
 
         old_block = new_block.block_update(archived=False)
         assert old_block.obj.archived is False
+
+    def test_block_update__obj_retype(self, no):
+        block_obj = Block.create("To do block", type_="to_do")
+        with pytest.raises(ValidationError):
+            no.blocks.block_update(id_="08326405c2924ccc929bd78ceb70a2f3", block_obj=block_obj)
+
+    def test_block_update__obj(self, no):
+        block = no.blocks.get("08326405c2924ccc929bd78ceb70a2f3")  # Paragraph block to update.
+        old_block_obj = block.obj
+        new_name = "Updated paragraph block"
+        block_obj = Block.create(new_name)
+        new_block = block.block_update(block_obj=block_obj)
+        assert isinstance(new_block.obj, Block)
+        assert new_block.obj.simple == new_name
+
+        old_block = new_block.block_update(block_obj=old_block_obj)
+        assert str(old_block.obj) == old_block_obj.simple
 
     def test_block_append__single(self, no):
         page = no.pages.get("365985ab349149d7826035fd46858b3f")  # Page for creating blocks
