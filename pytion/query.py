@@ -232,3 +232,5 @@ class Request(object):
                     next_start = r.get("next_cursor")
                 else:
                     next_start = None
+                result["has_more"] = r.get("has_more")
+                result["next_cursor"] = r.get("next_cursor")
