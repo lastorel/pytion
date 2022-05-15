@@ -455,12 +455,12 @@ class Element(object):
             return None
         if isinstance(id_, str) and "-" in id_:
             id_ = id_.replace("-", "")
-        if block_obj:
-            self.obj = block_obj
         if self.obj:
             id_ = self.obj.id
         else:
             self.get(id_)
+        if block_obj:
+            self.obj = block_obj
         if not self.obj.get():
             return None
         if new_text:
