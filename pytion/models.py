@@ -246,7 +246,7 @@ class Property(object):
         Property Schema Object (watch docs)
 
         + addons:
-        set type = `None` to delete this Property
+        set type_ = `None` to delete this Property
         set param `name` to rename this Property
         """
         return cls({"type": type_, **kwargs})
@@ -433,10 +433,6 @@ class PropertyValue(Property):
     def create(cls, type_: str = "", value: Any = None, **kwargs):
         """
         Property Value Object (watch docs)
-
-        + addons:
-        set type = `None` to delete this Property
-        set param `name` to rename this Property
         """
         return cls({"type": type_, type_: value, **kwargs}, name="")
 
