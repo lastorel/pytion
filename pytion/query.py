@@ -118,10 +118,13 @@ class Filter(object):
 class Sort(object):
     directions = ["ascending", "descending"]
 
-    def __init__(self, property_name: str, direction: str):
+    def __init__(self, property_name: str, direction: str = "ascending"):
         if direction not in self.directions:
             raise ValueError(f"Allowed types {self.directions} ({direction} is provided)")
-        self.sorts = [{"property": property_name, "direction": direction}]
+        if property_name in ("created_time", "last_edited_time"):
+            self.sorts = [{"timestamp": property_name, "direction": direction}]
+        else:
+            self.sorts = [{"property": property_name, "direction": direction}]
 
     def add(self, property_name: str, direction: str):
         if direction not in self.directions:

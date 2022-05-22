@@ -200,5 +200,12 @@ class TestSort:
         with pytest.raises(ValidationError):
             little_database.db_query(sorts=s)
 
-    def test_query__timestamp(self):
-        pass
+    def test_query__timestamp(self, little_database):
+        s = Sort("last_edited_time")
+        r = little_database.db_query(sorts=s)
+        assert isinstance(r.obj[0], Page)
+        assert len(r.obj) == 4
+        assert str(r.obj[0]) == "wait, what?"
+        assert str(r.obj[2]) == "Parent testing page"
+        assert "friends" in str(r.obj[1])
+        assert bool(r.obj[3].title) is False
