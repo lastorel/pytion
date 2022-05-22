@@ -2,7 +2,9 @@ import requests
 import pytest
 
 import pytion.envs as envs
-from pytion.exceptions import InvalidRequestURL, ContentError, ValidationError, ObjectNotFound
+from pytion import InvalidRequestURL, ContentError, ValidationError, ObjectNotFound
+from pytion.query import Sort
+from pytion.models import Page
 
 
 class TestRequest:
@@ -162,3 +164,41 @@ class TestRequest:
         assert len(r["results"]) == 201
         assert r["has_more"] is False
         assert r["next_cursor"] is None
+
+
+class TestFilter:
+    pass
+
+
+class TestSort:
+    def test_query__ascending(self, little_database):
+        s = Sort("Digit", "ascending")
+        r = little_database.db_query(sorts=s)
+        assert isinstance(r.obj[0], Page)
+        assert len(r.obj) == 4
+        assert str(r.obj[0]) == "wait, what?"
+        assert str(r.obj[1]) == "Parent testing page"
+        assert "friends" in str(r.obj[2])
+        assert bool(r.obj[3].title) is False
+
+    def test_query__descending(self, little_database):
+        s = Sort("Digit", "descending")
+        r = little_database.db_query(sorts=s)
+        assert isinstance(r.obj[0], Page)
+        assert len(r.obj) == 4
+        assert str(r.obj[2]) == "wait, what?"
+        assert str(r.obj[1]) == "Parent testing page"
+        assert "friends" in str(r.obj[0])
+        assert bool(r.obj[3].title) is False
+
+    def test_query__invalid_direction(self):
+        with pytest.raises(ValueError):
+            Sort("Digit", "reverse")
+
+    def test_query__invalid_prop(self, little_database):
+        s = Sort("Date", "descending")
+        with pytest.raises(ValidationError):
+            little_database.db_query(sorts=s)
+
+    def test_query__timestamp(self):
+        pass
