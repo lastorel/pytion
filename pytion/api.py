@@ -15,9 +15,15 @@ logger = logging.getLogger(__name__)
 
 
 class Notion(object):
-    def __init__(self, token: Optional[str] = None):
-        self.version = envs.NOTION_VERSION
-        self.session = Request(token=token)
+    def __init__(self, token: Optional[str] = None, version: Optional[str] = None):
+        """
+        Creates main API object.
+
+        :param token:   provide your integration API token. If None - find the file `token`
+        :param version: provide non hardcoded API version
+        """
+        self.version = version if version else envs.NOTION_VERSION
+        self.session = Request(api=self, token=token)
         logger.debug(f"API object created. Version {envs.NOTION_VERSION}")
 
     def __len__(self):
@@ -212,12 +218,37 @@ class Element(object):
             return None
         if isinstance(id_, str) and "-" in id_:
             id_ = id_.replace("-", "")
-        if self.obj:
+        if self.obj and not id_:
             id_ = self.obj.id
         property_obj = self.api.session.method(
             method="get", path=self.name, id_=id_, after_path="properties/"+property_id, limit=limit
         )
         return Element(api=self.api, name=f"pages/{id_}/properties", obj=PropertyValue(property_obj, property_id))
+
+    def get_page_properties(self, title_only: bool = False, obj: Optional[Page] = None) -> None:
+        """
+        Page properties must be retrieved using the page properties endpoint. (c)
+        after retrieving a Page object you can retrieve its properties
+
+        obj or self.obj must be a Page
+        :return:
+        """
+        if not obj:
+            obj = self.obj
+        if obj and isinstance(obj, Page):
+            for prop in obj.properties:
+                # Skip already retrieved properties
+                if isinstance(obj.properties[prop], PropertyValue):
+                    continue
+                prop_id = obj.properties[prop].id
+                if title_only and prop_id != "title":
+                    continue
+                result = self.get_page_property(prop_id, id_=obj.id)
+                obj.properties[prop] = result.obj
+                if prop_id == "title":
+                    obj.title = result.obj.value if result.obj.value else ""
+            return
+        logger.warning("You must provide a Page to retrieve properties")
 
     def db_query(
             self,
@@ -240,7 +271,10 @@ class Element(object):
         )
         if r["object"] != "list":
             return None
-        return Element(api=self.api, name="pages", obj=PageArray(r["results"]))
+        pa = Element(api=self.api, name="pages", obj=PageArray(r["results"]))
+        for p in pa.obj:
+            pa.get_page_properties(title_only=True, obj=p)
+        return pa
 
     def db_filter(self, title: str = None, **kwargs) -> Optional[Element]:
         """

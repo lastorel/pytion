@@ -12,9 +12,11 @@ Client is built with its own object model based on API
 So if you are using **notion.so** and want to automate some stuff with the original API, you're welcome!  
 You can read any available data, create basic models, and even work with databases.
 
-Current Notion API version = **"2022-02-22"**
+Current Notion API version = **"2022-06-28"**
 
 _*does not use notion-sdk-py client_
+
+See [Change Log](./CHANGELOG.md)
 
 # Contents
 
@@ -146,6 +148,8 @@ There is a list of available methods for communicate with **api.notion.com**. Th
 
 `.get_page_property(property_id, id_, limit)` - Retrieve a page property item.
 
+`.get_page_properties(title_only, obj)` - Retrieve the title or all properties of current Page or Page `obj`
+
 `.db_query(id_, limit, filter_, sorts)` - Query Database.
 
 `.db_filter(...see desc...)` - Query Database.
@@ -191,6 +195,7 @@ There are classes **based on API** structures:
   - use `.db_filter()` to get database content with filtering and/or sorting
 - `Page` based on [Page object](https://developers.notion.com/reference/page)
   - You can create object `Page.create(...)` and/or use `.page_create(...)` API method
+  - use `.get_page_properties()` to retrieve page title and other `PropertyValue`-s 
   - use `.page_update()` method to modify attributes or delete the page
   - use `.get_block_children()` to get page content (without nested blocks) (it will be `BlockArray`)
   - use `.get_block_children_recursive()` to get page content with nested blocks
@@ -206,10 +211,10 @@ There are classes **based on API** structures:
   - You can retrieve more data about a User by his ID using `.get()`
 - `Property` based on [Property object](https://developers.notion.com/reference/property-object)
   - You can create object `Property.create(...)` while creating or editing database: `.db_create()` or `.db_update()`
-  - `formula`, `relation`, `rollup` type properties configuration is not supported
+  - `formula`, `rollup` type properties configuration is not supported
 - `PropertyValue` based on [Property values](https://developers.notion.com/reference/property-value-object)
   - You can create object `PropertyValue.create(...)` to set or edit page properties by `.page_create()` or `.page_update()`
-  - `files`, `relation`, `formula`, `rollup` type properties are not editable
+  - `files`, `formula`, `rollup` type properties are not editable
 
 There are also useful **internal** classes:
 
@@ -282,6 +287,13 @@ Extension attributes are listed below in support matrix:
 | `unsupported` | Blocks unsupported by API | + | - | - |  |
 
 > API converts **toggle heading** Block to simple heading Block.
+
+### Supported Property types
+
+| Property type | Property type | Property Schema | Property Values | Property Item | Config attrs |
+| --- | --- | --- | --- | --- | --- |
+| `title` | rw | rw | rw | + |  |
+| in_progress... | rw | rw | rw | + |  |
 
 ### Block creating examples
 
