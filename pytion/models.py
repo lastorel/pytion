@@ -215,7 +215,7 @@ class Model(object):
 
 class Property(object):
     def __init__(self, data: Dict[str, str]):
-        self.to_delete = True if data.get("type") is None else False
+        self.to_delete = True if data.get("type", False) is None else False
         self.id: str = data.get("id")
         self.type: str = data.get("type", "")
         self.name: str = data.get("name")
@@ -509,15 +509,10 @@ class Page(Model):
         self.url: str = kwargs.get("url")
         self.children = kwargs["children"] if "children" in kwargs else LinkTo(block=self)
         self.properties = {
-            name: (PropertyValue(data, name) if not isinstance(data, PropertyValue) else data)
+            name: (Property(data) if not isinstance(data, PropertyValue) else data)
             for name, data in kwargs["properties"].items()
         }
-        for p in self.properties.values():
-            if "title" in p.type:
-                self.title = p.value
-                break
-        else:
-            self.title = None
+        self.title = "unknown"
 
     def __str__(self):
         return str(self.title)

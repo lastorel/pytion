@@ -12,7 +12,7 @@ Client is built with its own object model based on API
 So if you are using **notion.so** and want to automate some stuff with the original API, you're welcome!  
 You can read any available data, create basic models, and even work with databases.
 
-Current Notion API version = **"2022-02-22"**
+Current Notion API version = **"2022-06-28"**
 
 _*does not use notion-sdk-py client_
 
@@ -146,6 +146,8 @@ There is a list of available methods for communicate with **api.notion.com**. Th
 
 `.get_page_property(property_id, id_, limit)` - Retrieve a page property item.
 
+`.get_page_properties(title_only, obj)` - Retrieve the title or all properties of current Page or Page `obj`
+
 `.db_query(id_, limit, filter_, sorts)` - Query Database.
 
 `.db_filter(...see desc...)` - Query Database.
@@ -191,6 +193,7 @@ There are classes **based on API** structures:
   - use `.db_filter()` to get database content with filtering and/or sorting
 - `Page` based on [Page object](https://developers.notion.com/reference/page)
   - You can create object `Page.create(...)` and/or use `.page_create(...)` API method
+  - use `.get_page_properties()` to retrieve page title and other `PropertyValue`-s 
   - use `.page_update()` method to modify attributes or delete the page
   - use `.get_block_children()` to get page content (without nested blocks) (it will be `BlockArray`)
   - use `.get_block_children_recursive()` to get page content with nested blocks

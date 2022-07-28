@@ -28,4 +28,6 @@ def page_for_pages(no):
 
 @pytest.fixture(scope="session")
 def page_for_updates(no):
-    return no.pages.get("36223246a20e42df8f9b354ed1f11d75")
+    page = no.pages.get("36223246a20e42df8f9b354ed1f11d75")
+    page.get_page_properties()
+    return page
