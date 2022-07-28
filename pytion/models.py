@@ -214,12 +214,23 @@ class Model(object):
 
 
 class Property(object):
-    def __init__(self, data: Dict[str, str]):
+    def __init__(self, data: Dict[str, Any]):
         self.to_delete = True if data.get("type", False) is None else False
         self.id: str = data.get("id")
         self.type: str = data.get("type", "")
         self.name: str = data.get("name")
         self.raw = data
+        self.subtype = None
+
+        if self.type == "relation":
+            if isinstance(data[self.type], dict):
+                self.subtype = data[self.type].get("type")
+                self.relation = LinkTo.create(database_id=data[self.type].get("database_id"))
+                if self.subtype == "single_property":
+                    pass
+                elif self.subtype == "dual_property":
+                    self.relation_property_id = data[self.type][self.subtype].get("synced_property_id")
+                    self.relation_property_name = data[self.type][self.subtype].get("synced_property_name")
 
     def __str__(self):
         return self.name if self.name else self.type
@@ -237,7 +248,11 @@ class Property(object):
             data["name"] = self.name
         # property retyping while patch
         if self.type:
-            data[self.type] = {}
+            # create relation type property with configuration
+            if self.type == "relation":
+                data[self.type] = {self.subtype: {}, "database_id": self.relation.id}
+            else:
+                data[self.type] = {}
         return data
 
     @classmethod
@@ -248,7 +263,15 @@ class Property(object):
         + addons:
         set type_ = `None` to delete this Property
         set param `name` to rename this Property
+
+        + relation type:
+        set param `single_property` with `database_id` value OR
+        set param `dual_property` with `database_id` value
+        Property.create(type_="relation", dual_property="v111c132c12c1242341c41c")
         """
+        if type_ == "relation":
+            subtype = next(kwarg for kwarg in kwargs if kwarg in ("single_property", "dual_property"))
+            kwargs["relation"] = {"type": subtype, subtype: {}, "database_id": kwargs[subtype]}
         return cls({"type": type_, **kwargs})
 
 
@@ -331,7 +354,10 @@ class PropertyValue(Property):
             self.value = [user if isinstance(user, User) else User(**user) for user in data[self.type]]
 
         if self.type == "relation":
-            self.value: List[str] = [item.get("id") for item in data["relation"]]
+            self.value: List[LinkTo] = [
+                LinkTo.create(page_id=item.get("id")) if not isinstance(item, LinkTo) else item
+                for item in data[self.type]
+            ]
 
         if self.type == "rollup":
             rollup_type = data["rollup"]["type"]
@@ -420,8 +446,12 @@ class PropertyValue(Property):
         if self.type == "people":
             return {self.type: [user.get() for user in self.value]}
 
+        # relation type
+        if self.type == "relation":
+            return {self.type: [{"id": lt.id} for lt in self.value]}
+
         # unsupported types:
-        if self.type in ["files", "relation"]:
+        if self.type in ["files"]:
             return {self.type: []}
         if self.type in ["created_time", "last_edited_by", "last_edited_time", "created_by"]:
             return None

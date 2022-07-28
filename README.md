@@ -16,6 +16,8 @@ Current Notion API version = **"2022-06-28"**
 
 _*does not use notion-sdk-py client_
 
+See [Change Log](./CHANGELOG.md)
+
 # Contents
 
 1. [Quick Start](#quick-start)
@@ -209,10 +211,10 @@ There are classes **based on API** structures:
   - You can retrieve more data about a User by his ID using `.get()`
 - `Property` based on [Property object](https://developers.notion.com/reference/property-object)
   - You can create object `Property.create(...)` while creating or editing database: `.db_create()` or `.db_update()`
-  - `formula`, `relation`, `rollup` type properties configuration is not supported
+  - `formula`, `rollup` type properties configuration is not supported
 - `PropertyValue` based on [Property values](https://developers.notion.com/reference/property-value-object)
   - You can create object `PropertyValue.create(...)` to set or edit page properties by `.page_create()` or `.page_update()`
-  - `files`, `relation`, `formula`, `rollup` type properties are not editable
+  - `files`, `formula`, `rollup` type properties are not editable
 
 There are also useful **internal** classes:
 
@@ -285,6 +287,13 @@ Extension attributes are listed below in support matrix:
 | `unsupported` | Blocks unsupported by API | + | - | - |  |
 
 > API converts **toggle heading** Block to simple heading Block.
+
+### Supported Property types
+
+| Property type | Property type | Property Schema | Property Values | Property Item | Config attrs |
+| --- | --- | --- | --- | --- | --- |
+| `title` | rw | rw | rw | + |  |
+| in_progress... | rw | rw | rw | + |  |
 
 ### Block creating examples
 
