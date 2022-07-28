@@ -450,6 +450,7 @@ class Database(Model):
         :param properties:
         :param parent:
         :param url:
+        :param is_inline:
         """
         super().__init__(**kwargs)
         self.cover: Optional[Dict] = kwargs.get("cover")
@@ -464,6 +465,7 @@ class Database(Model):
         }
         self.parent = kwargs["parent"] if isinstance(kwargs.get("parent"), LinkTo) else LinkTo(**kwargs["parent"])
         self.url: str = kwargs.get("url")
+        self.is_inline: bool = kwargs.get("is_inline")
 
     def __str__(self):
         return str(self.title)
@@ -579,6 +581,7 @@ class Block(Model):
                 if isinstance(self.caption, str):
                     self.caption = RichTextArray.create(self.caption)
             return
+        self.parent = kwargs["parent"] if isinstance(kwargs.get("parent"), LinkTo) else LinkTo(**kwargs["parent"])
 
         if self.type == "paragraph":
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
@@ -956,11 +959,11 @@ class LinkTo(object):
                 self.id = ""
             self.after_path = ""
             if self.type == "page_id":
-                self.uri = "blocks"
+                self.uri = "pages"
             elif self.type == "database_id":
                 self.uri = "databases"
             # when type is set manually
-            elif self.type == "page":
+            elif self.type == "page":  # deprecated.
                 self.uri = "pages"
             elif self.type == "block_id":
                 self.uri = "blocks"

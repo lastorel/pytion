@@ -8,7 +8,7 @@ from pytion import InvalidRequestURL, ObjectNotFound, ValidationError
 
 
 def test_notion(no):
-    assert no.version == "2022-02-22"
+    assert no.version == "2022-06-28"
     assert no.session.base == "https://api.notion.com/v1/"
 
 
@@ -60,20 +60,27 @@ class TestElement:
         assert isinstance(blocks.obj[0], Block)
 
     def test_get_parent__block(self, no):
-        something = no.blocks.get_parent("9b2026c3a0cb45fc8cee330142d60f3a")  # I'm fine!
-        assert something is None, "Blocks have not any parent"
+        parent_block = no.blocks.get_parent("9b2026c3a0cb45fc8cee330142d60f3a")  # I'm fine!
+        assert isinstance(parent_block.obj, Block)
+        assert parent_block.obj.id == "8a920ba7dc1d4961811e5c82b28028ed"
+        assert str(parent_block.obj) == "Hello! How are you?"
+
+    def test_get_parent__block2(self, no):
+        parent_block = no.blocks.get_parent("8a920ba7dc1d4961811e5c82b28028ed")  # Hello! How are you?
+        assert isinstance(parent_block.obj, Page)
+        assert parent_block.obj.id == "82ee5677402f44819a5da3302273400a"
+        assert str(parent_block.obj) == "Page with some texts"
 
     def test_get_parent__page(self, no):
         parent_page_block = no.pages.get_parent("82ee5677402f44819a5da3302273400a")  # Page with some texts
         assert isinstance(parent_page_block.obj, Block)
-        assert parent_page_block.obj.id == "878d628488d94894ab14f9b872cd6870"
-        assert parent_page_block.obj.text == "Pytion Tests"
+        assert parent_page_block.obj.id == "6001eb5621f2428392d532bf08bc8ecd"
+        assert "Page with some texts" in str(parent_page_block.obj)
 
-    def test_get_parent__database(self, no):
-        parent_page_block = no.pages.get_parent("82ee5677402f44819a5da3302273400a")  # Little Database
-        assert isinstance(parent_page_block.obj, Block)
-        assert parent_page_block.obj.id == "878d628488d94894ab14f9b872cd6870"
-        assert parent_page_block.obj.text == "Pytion Tests"
+    def test_get_parent__database(self, no, root_page):
+        parent_page_block = no.databases.get_parent("0e9539099cff456d89e44684d6b6c701")  # Little Database
+        assert isinstance(parent_page_block.obj, Page)
+        assert parent_page_block.obj.id == root_page.obj.id
 
     def test_get_parent__user(self, no):
         something = no.users.get_parent("01c67faf3aba45ffaa022407f87c86a5")
@@ -81,7 +88,10 @@ class TestElement:
 
     def test_get_parent__block_obj(self, no):
         block = no.blocks.get("8a920ba7dc1d4961811e5c82b28028ed")  # Hello! How are you?
-        assert block.get_parent() is None, "Blocks have not any parent"
+        parent_block = block.get_parent()
+        assert isinstance(parent_block.obj, Page)
+        assert parent_block.obj.id == "82ee5677402f44819a5da3302273400a"
+        assert str(parent_block.obj) == "Page with some texts"
 
     def test_get_parent__page_obj(self, no):  # Database is the parent of this page
         page = no.pages.get("b85877eaf7bf4245a8c5218055eeb81f")  # Parent testing page

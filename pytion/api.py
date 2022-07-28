@@ -15,9 +15,15 @@ logger = logging.getLogger(__name__)
 
 
 class Notion(object):
-    def __init__(self, token: Optional[str] = None):
-        self.version = envs.NOTION_VERSION
-        self.session = Request(token=token)
+    def __init__(self, token: Optional[str] = None, version: Optional[str] = None):
+        """
+        Creates main API object.
+
+        :param token:   provide your integration API token. If None - find the file `token`
+        :param version: provide non hardcoded API version
+        """
+        self.version = version if version else envs.NOTION_VERSION
+        self.session = Request(api=self, token=token)
         logger.debug(f"API object created. Version {envs.NOTION_VERSION}")
 
     def __len__(self):

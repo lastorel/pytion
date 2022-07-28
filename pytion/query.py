@@ -139,6 +139,7 @@ class Sort(object):
 class Request(object):
     def __init__(
             self,
+            api: object,  # Notion object
             method: Optional[str] = None,
             path: Optional[str] = None,
             id_: str = "",
@@ -156,7 +157,7 @@ class Request(object):
         self._token = token if token else envs.NOTION_SECRET
         if not self._token:
             logger.error("Token is not provided or file `token` is not found!")
-        self.version = envs.NOTION_VERSION
+        self.version = getattr(api, "version")
         self.auth = {"Authorization": "Bearer " + self._token}
         self.session.headers.update({"Notion-Version": self.version, **self.auth})
         self.result = None
