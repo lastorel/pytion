@@ -119,17 +119,25 @@ class Sort(object):
     directions = ["ascending", "descending"]
 
     def __init__(self, property_name: str, direction: str = "ascending"):
+        """
+        Sort object is used while querying database or search query:
+        - self.sort object is used in search query (only single item supported by API)
+        - self.sorts can contain multiple criteria and is used in database query
+        """
         if direction not in self.directions:
             raise ValueError(f"Allowed types {self.directions} ({direction} is provided)")
         if property_name in ("created_time", "last_edited_time"):
-            self.sorts = [{"timestamp": property_name, "direction": direction}]
+            self.sort = {"timestamp": property_name, "direction": direction}
+            self.sorts = [self.sort]
         else:
-            self.sorts = [{"property": property_name, "direction": direction}]
+            self.sort = {"property": property_name, "direction": direction}
+            self.sorts = [self.sort]
 
     def add(self, property_name: str, direction: str):
         if direction not in self.directions:
             raise ValueError(f"Allowed types {self.directions} ({direction} is provided)")
-        self.sorts.append({"property": property_name, "direction": direction})
+        self.sort = {"property": property_name, "direction": direction}
+        self.sorts.append(self.sort)
 
     def __repr__(self):
         r = [e.values() for e in self.sorts]
@@ -166,8 +174,9 @@ class Request(object):
             self.result = self.method(method, path, id_, data, after_path, limit, filter_, sorts)
 
     def method(
-            self, method, path, id_="", data=None, after_path=None,
-            limit=0, filter_: Optional[Filter] = None, sorts: Optional[Sort] = None, pagination_loop: bool = False,
+            self, method: str, path: str, id_: str = "", data: Optional[Dict] = None,
+            after_path: Optional[str] = None, limit: int = 0, filter_: Optional[Filter] = None,
+            sorts: Optional[Sort] = None, pagination_loop: bool = False, sort: Optional[Sort] = None,
     ):
         if filter_:
             if data:
@@ -179,6 +188,11 @@ class Request(object):
                 data["sorts"] = sorts.sorts
             else:
                 data = {"sorts": sorts.sorts}
+        if sort:  # specific attr in 'search' query. strange
+            if data:
+                data["sort"] = sort.sort
+            else:
+                data = {"sort": sort.sort}
         url = self.base + path + "/" + id_
         if limit and method == "get":
             if after_path:

@@ -10,7 +10,7 @@ from pytion.models import Database, Page, Block, BlockArray, PropertyValue, Page
 from pytion.models import ElementArray, User
 
 
-Models = Union[Database, Page, Block, BlockArray, PropertyValue, PageArray]
+Models = Union[Database, Page, Block, BlockArray, PropertyValue, PageArray, ElementArray]
 logger = logging.getLogger(__name__)
 
 
@@ -26,14 +26,43 @@ class Notion(object):
         self.session = Request(api=self, token=token)
         logger.debug(f"API object created. Version {envs.NOTION_VERSION}")
 
+    def search(
+            self, query: Optional[str] = None, limit: int = 0,
+            object_type: Optional[str] = None, sort_last_edited_time: Optional[str] = None
+    ) -> Optional[Element]:
+        """
+        Searches all original pages, databases, and child pages/databases that are shared with the integration.
+        It will not return linked databases, since these duplicate their source databases. (c)
+
+
+        :param query:                   search by page title
+        :param limit:                   0 < int < 100 - max number of items to be returned (0 = return all)
+        :param object_type:             filter by type: 'page' or 'database'
+        :param sort_last_edited_time:   sorting 'ascending' or 'descending'
+        :return:
+
+        `r = no.search("pytion", 10, sort_last_edited_time="ascending")`
+        `print(r.obj)`
+        """
+        data = {"query": query} if query else None
+        filter_ = Filter(raw={"property": "object", "value": object_type}) if object_type else None
+        if sort_last_edited_time:
+            sort_last_edited_time = Sort(property_name="last_edited_time", direction=sort_last_edited_time)
+        result = self.session.method(
+            "post", "search", sort=sort_last_edited_time, filter_=filter_, limit=limit, data=data
+        )
+        if "results" in result and isinstance(result["results"], list):
+            data = ElementArray(result["results"])
+            for item in data:
+                if isinstance(item, Page):
+                    self.pages.get_page_properties(title_only=True, obj=item)
+            return Element(api=self, name="search", obj=data)
+        else:
+            logger.warning("Results list is not found")
+            return None
+
     def __len__(self):
         return 1
-
-    # def __getstate__(self):
-    #     return {"api": self.session}
-    #
-    # def __setstate__(self, d):
-    #     self.__dict__.update(d)
 
     def __repr__(self):
         return "NotionAPI"
@@ -59,7 +88,7 @@ class Element(object):
     def get(self, id_: str, _after_path: str = None, limit: int = 0) -> Element:
         """
         Get Element by ID.
-        .query.RequestError exception if not found
+        .exceptions.ObjectNotFound exception if not found
 
         :return:    `Element.obj` may be `Page`, `Database`, `Block`
 

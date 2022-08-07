@@ -13,6 +13,7 @@
 - [#27](https://github.com/lastorel/pytion/issues/27): updates for `relation` type `PropertyValue`
 - [#16](https://github.com/lastorel/pytion/issues/17): tests of Property model
 - [#28](https://github.com/lastorel/pytion/issues/28): Add whoami method
+- [#16](https://github.com/lastorel/pytion/issues/16): Add search engine
 
 ### Breaking changes
 

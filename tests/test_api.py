@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from pytion.models import Page, Block, Database, User, RichTextArray
+from pytion.models import Page, Block, Database, User, RichTextArray, ElementArray
 from pytion.models import BlockArray, PropertyValue, PageArray, LinkTo, Property
 from pytion import InvalidRequestURL, ObjectNotFound, ValidationError
 
@@ -10,6 +10,26 @@ from pytion import InvalidRequestURL, ObjectNotFound, ValidationError
 def test_notion(no):
     assert no.version == "2022-06-28"
     assert no.session.base == "https://api.notion.com/v1/"
+
+
+def test_search__empty(no):
+    r = no.search("123412341234")
+    assert isinstance(r.obj, ElementArray)
+    assert len(r.obj) == 0
+
+
+def test_search__type_and_limit(no):
+    r = no.search(object_type="database", limit=4)
+    assert isinstance(r.obj, ElementArray)
+    assert len(r.obj) == 4
+    assert all(isinstance(item, Database) for item in r.obj)
+
+
+def test_search__query(no):
+    r = no.search("tests")
+    assert isinstance(r.obj, ElementArray)
+    assert len(r.obj) >= 1
+    assert str(r.obj[0]) == "Pytion Tests"
 
 
 class TestElement:
