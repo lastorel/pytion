@@ -133,6 +133,19 @@ new_page = page.page_update(title="new page name 2")
 # new_page.obj is equal page.obj except title and last_edited properties
 ```
 
+### Search
+
+There is a search example:
+```python
+no = Notion(token)
+
+r = no.search("updating", object_type="page")
+print(r.obj)
+# output:
+# Page for updating
+# Page to updating databases
+```
+
 
 ### pytion.api.Element
 
@@ -230,6 +243,7 @@ There are also useful **internal** classes:
   - You can create object `LinkTo.create()` and use it in many places and methods
   - use `LinkTo(from_object=my_page1)` to quickly create a link to any existing object of pytion.models
   - `link` property of `LinkTo` returns expanded URL
+- `ElementArray` is found while using `.search()` endpoint. It's a parent of `PageArray`
 
 > And every model has a `.get()` method that returns API friendly JSON.
 
