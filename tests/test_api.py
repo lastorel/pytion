@@ -613,6 +613,18 @@ class TestElement:
             removed_block = no.blocks.block_update(block.id, archived=True)
             assert removed_block.obj.archived is True
 
+    def test_get_myself(self, no):
+        bot = no.users.get_myself()
+        assert isinstance(bot.obj, User)
+        assert bot.obj.type == "bot"
+        assert bot.obj.name == "Pytion tests"
+
+    def test_get_myself__from_obj(self, root_page):
+        bot = root_page.get_myself()
+        assert isinstance(bot.obj, User)
+        assert bot.obj.type == "bot"
+        assert bot.obj.name == "Pytion tests"
+
     def test_from_linkto__base(self, no):
         link = LinkTo.create(page_id="878d628488d94894ab14f9b872cd6870")
         page = no.pages.from_linkto(link)
