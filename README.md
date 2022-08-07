@@ -168,6 +168,8 @@ There is a list of available methods for communicate with **api.notion.com**. Th
 
 `.block_append(id_, block, blocks)` - Append block or blocks children.
 
+`.get_myself()` - Retrieve my bot User.
+
 `.from_linkto(linkto)` - Creates new Element object based on LinkTo information.
 
 `.from_object(model)` - Creates new Element object from Page, Block or Database object. Usable while Element object contains an Array.
@@ -209,6 +211,7 @@ There are classes **based on API** structures:
 - `User` based on [User object](https://developers.notion.com/reference/user)
   - You can create object `User.create(...)` and use it in some properties like `people` type property
   - You can retrieve more data about a User by his ID using `.get()`
+  - use `.get_myself()` to retrieve the current bot User
 - `Property` based on [Property object](https://developers.notion.com/reference/property-object)
   - You can create object `Property.create(...)` while creating or editing database: `.db_create()` or `.db_update()`
   - `formula`, `rollup` type properties configuration is not supported

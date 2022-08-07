@@ -542,6 +542,18 @@ class Element(object):
         )
         return Element(api=self.api, name="blocks", obj=BlockArray(new_blocks["results"]))
 
+    def get_myself(self) -> Element:
+        """
+        Retrieves the bot User associated with the API token provided in the authorization header.
+
+        :return: Element with User obj
+
+        `me = no.users.get_myself()`
+        """
+        new_object = Element(self.api, name="users")
+        new_object.get("me")
+        return new_object
+
     def from_linkto(self, linkto: LinkTo, limit: int = 0) -> Optional[Element]:
         if not linkto:
             logger.error("LinkTo must be provided!")
