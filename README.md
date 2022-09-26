@@ -309,10 +309,25 @@ Extension attributes are listed below in support matrix:
 
 ### Supported Property types
 
-| Property type | Property type | Property Schema | Property Values | Property Item | Config attrs |
-| --- | --- | --- | --- | --- | --- |
-| `title` | rw | rw | rw | + |  |
-| in_progress... | rw | rw | rw | + |  |
+| Property type  | value type | read (DB) | value read (Page) | create (DB) | value create (Page) | Config attrs |
+|----------------|------------|-----------|-------------------|-------------|---------------------|-----------|
+| `title`        | `RichTextArray` | +         | +                 | +           | +                   |           |
+| `rich_text`    | `RichTextArray` | +         | +                 | +           | +                   |           |
+| `number`       | `int`/`float` | +         | +                 | +           | +                   | ~~format~~    |
+| `checkbox`     | `bool`     | +         | +                 | +           | +                   |           |
+| `select`       |            |           |                   |             |                     |           |
+| `multi_select` |            |           |                   |             |                     |           |
+| `date`         |            |           |                   |             |                     |           |
+| `status`       |            | -         | -                 | -           | -                   |           |
+| `url`          |            |           |                   |             |                     |           |
+| `email`        |            |           |                   |             |                     |           |
+| `phone_number`  |            |           |                   |             |                     |           |
+| `relation`     |            | +         | +                 | +           | +                   |           |
+| `formula`      |            |           |                   |             |                     |           |
+| `rollup`       |            |           |                   |             |                     |           |
+| `people`       |            |           |                   |             |                     |           |
+| `files`        |            |           |                   |             |                     |           |
+| in_progress... |            |           |                   |             | +                   |           |
 
 ### Block creating examples
 
