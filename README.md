@@ -22,11 +22,13 @@ See [Change Log](./CHANGELOG.md)
 
 1. [Quick Start](#quick-start)
 2. [Pytion API](#pytion-api)
-   1. [pytion.api.Element](#pytionapielement)
+   1. [Searching](#search)
+   2. [pytion.api.Element](#pytionapielement)
 3. [Models](#models)
    1. [pytion.models](#pytionmodels)
    2. [Supported block types](#supported-block-types)
-   3. [Block creating examples](#block-creating-examples)
+   3. [Supported Property types](#supported-property-types)
+   4. [Block creating examples](#block-creating-examples)
 4. [Logging](#logging)
 
 ## Quick start
@@ -162,6 +164,7 @@ There is a list of available methods for communicate with **api.notion.com**. Th
 `.get_page_property(property_id, id_, limit)` - Retrieve a page property item.
 
 `.get_page_properties(title_only, obj)` - Retrieve the title or all properties of current Page or Page `obj`
+*(deprecated, useful for v1.3.0 only)*
 
 `.db_query(id_, limit, filter_, sorts)` - Query Database.
 
@@ -210,7 +213,6 @@ There are classes **based on API** structures:
   - use `.db_filter()` to get database content with filtering and/or sorting
 - `Page` based on [Page object](https://developers.notion.com/reference/page)
   - You can create object `Page.create(...)` and/or use `.page_create(...)` API method
-  - use `.get_page_properties()` to retrieve page title and other `PropertyValue`-s 
   - use `.page_update()` method to modify attributes or delete the page
   - use `.get_block_children()` to get page content (without nested blocks) (it will be `BlockArray`)
   - use `.get_block_children_recursive()` to get page content with nested blocks

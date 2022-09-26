@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.3.1
+- [#32](https://github.com/lastorel/pytion/issues/32): Rollback of Page retrieving with properties
+
 ## v1.3.0
 
 - [#27](https://github.com/lastorel/pytion/issues/27): Switched from `2022-02-22` to `2022-06-28` version of Notion API

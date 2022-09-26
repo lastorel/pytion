@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="pytion",
-    version="1.3.0",
+    version="1.3.1",
     author="Yegor Gomzin",
     author_email="slezycmex@mail.ru",
     description="Unofficial Python client for official Notion API",
@@ -14,6 +14,7 @@ setuptools.setup(
     url="https://github.com/lastorel/pytion",
     project_urls={
         "Bug Tracker": "https://github.com/lastorel/pytion/issues",
+        "Changelog": "https://github.com/lastorel/pytion/blob/main/CHANGELOG.md",
     },
     classifiers=[
         "Programming Language :: Python :: 3.7",

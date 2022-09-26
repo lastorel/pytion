@@ -539,10 +539,15 @@ class Page(Model):
         self.url: str = kwargs.get("url")
         self.children = kwargs["children"] if "children" in kwargs else LinkTo(block=self)
         self.properties = {
-            name: (Property(data) if not isinstance(data, PropertyValue) else data)
+            name: (PropertyValue(data, name) if not isinstance(data, PropertyValue) else data)
             for name, data in kwargs["properties"].items()
         }
-        self.title = "unknown"
+        for p in self.properties.values():
+            if "title" in p.type:
+                self.title = p.value
+                break
+        else:
+            self.title = None
 
     def __str__(self):
         return str(self.title)
