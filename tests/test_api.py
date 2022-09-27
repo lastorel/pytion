@@ -37,7 +37,6 @@ class TestElement:
         page = root_page
         assert isinstance(page.obj, Page), "get of .pages. must return Page object"
         assert page.obj.id == "878d628488d94894ab14f9b872cd6870"
-        page.get_page_properties()
         assert str(page.obj.title) == "Pytion Tests"
 
     def test_get__block(self, no):
@@ -90,7 +89,6 @@ class TestElement:
         parent_block = no.blocks.get_parent("8a920ba7dc1d4961811e5c82b28028ed")  # Hello! How are you?
         assert isinstance(parent_block.obj, Page)
         assert parent_block.obj.id == "82ee5677402f44819a5da3302273400a"
-        parent_block.get_page_properties()
         assert str(parent_block.obj) == "Page with some texts"
 
     def test_get_parent__page(self, no):
@@ -113,7 +111,6 @@ class TestElement:
         parent_block = block.get_parent()
         assert isinstance(parent_block.obj, Page)
         assert parent_block.obj.id == "82ee5677402f44819a5da3302273400a"
-        parent_block.get_page_properties()
         assert str(parent_block.obj) == "Page with some texts"
 
     def test_get_parent__page_obj(self, no):  # Database is the parent of this page
@@ -128,7 +125,6 @@ class TestElement:
         parent_page_block = database.get_parent()
         assert isinstance(parent_page_block.obj, Page)
         assert parent_page_block.obj.id == "878d628488d94894ab14f9b872cd6870"
-        parent_page_block.get_page_properties()
         assert str(parent_page_block.obj) == "Pytion Tests"
 
     def test_get_parent__child_page(self, no):
@@ -136,7 +132,6 @@ class TestElement:
         page = child_page.get_parent()
         assert isinstance(page.obj, Page)
         assert page.obj.id == "878d628488d94894ab14f9b872cd6870"
-        page.get_page_properties()
         assert str(page.obj.title) == "Pytion Tests"
 
     def test_get_parent__child_database(self, no):
@@ -272,8 +267,8 @@ class TestElement:
     def test_get_page_properties(self, no):
         page = no.pages.get("b85877eaf7bf4245a8c5218055eeb81f")  # Parent testing page
         assert isinstance(page.obj, Page)
-        assert str(page.obj) == "unknown"
-        assert isinstance(page.obj.properties["Done"], Property)
+        # assert str(page.obj) == "unknown"
+        # assert isinstance(page.obj.properties["Done"], Property)
         page.get_page_properties()
         assert isinstance(page.obj.properties["Done"], PropertyValue)
         assert page.obj.properties["Digit"].value == 2
@@ -282,11 +277,11 @@ class TestElement:
     def test_get_page_properties__title(self, no):
         page = no.pages.get("b85877eaf7bf4245a8c5218055eeb81f")  # Parent testing page
         assert isinstance(page.obj, Page)
-        assert str(page.obj) == "unknown"
-        assert isinstance(page.obj.properties["Done"], Property)
+        # assert str(page.obj) == "unknown"
+        # assert isinstance(page.obj.properties["Done"], Property)
         page.get_page_properties(title_only=True)
-        assert hasattr(page.obj.properties["by"], "value") is False
-        assert isinstance(page.obj.properties["Done"], Property)
+        # assert hasattr(page.obj.properties["by"], "value") is False
+        # assert isinstance(page.obj.properties["Done"], Property)
         assert str(page.obj.title) == "Parent testing page"
 
     def test_db_query__id(self, no):
@@ -367,7 +362,6 @@ class TestElement:
 
     def test_db_filter__tag_property_obj(self, no, little_database):
         page = no.pages.get("c2fc6b3dc3d244e9be2a3d28b26082bf")  # Untitled
-        page.get_page_properties()
         my_prop = page.obj.properties["Tags"]
         pages = little_database.db_filter(property_obj=my_prop)
         assert isinstance(pages.obj, PageArray)
@@ -468,7 +462,6 @@ class TestElement:
         parent = LinkTo(from_object=page_for_pages.obj)
         page = no.pages.page_create(parent=parent, title="Page 1")
         assert isinstance(page.obj, Page)
-        page.get_page_properties(title_only=True)
         assert str(page.obj.title) == "Page 1"
         # delete section
         delete_page = page.page_update(archived=True)
@@ -478,7 +471,6 @@ class TestElement:
         parent = LinkTo.create(database_id="35f50aa293964b0d93e09338bc980e2e")  # Database for creating pages
         page = no.pages.page_create(parent=parent, title="Page 2")
         assert isinstance(page.obj, Page)
-        page.get_page_properties(title_only=True)
         assert str(page.obj.title) == "Page 2"
         # delete section
         delete_page = page.page_update(archived=True)
@@ -493,7 +485,6 @@ class TestElement:
         }
         page = no.pages.page_create(parent=parent, properties=props, title="Page 3")
         assert isinstance(page.obj, Page)
-        page.get_page_properties(title_only=True)
         assert str(page.obj.title) == "Page 3"
         # delete section
         delete_page = page.page_update(archived=True)
@@ -504,7 +495,6 @@ class TestElement:
         child = Block.create("Hello, World!")
         page = no.pages.page_create(parent=parent, title="Page 4", children=[child])
         assert isinstance(page.obj, Page)
-        page.get_page_properties(title_only=True)
         assert str(page.obj.title) == "Page 4"
         blocks = page.get_block_children()
         assert isinstance(blocks.obj, BlockArray)
@@ -520,7 +510,6 @@ class TestElement:
         page_obj = Page.create(parent=parent, title="Page 5")
         page = no.pages.page_create(page_obj=page_obj)
         assert isinstance(page.obj, Page)
-        page.get_page_properties(title_only=True)
         assert str(page.obj.title) == "Page 5"
         # delete section
         delete_page = page.page_update(archived=True)
@@ -531,15 +520,12 @@ class TestElement:
         new_name = "Updating for page"
         page = page_for_updates.page_update(title=new_name)
         assert isinstance(page.obj, Page)
-        page.get_page_properties(title_only=True)
         assert str(page.obj.title) == new_name
 
         old_page = page.page_update(title=RichTextArray.create(old_name))
-        old_page.get_page_properties(title_only=True)
         assert str(old_page.obj.title) == old_name
 
     def test_page_update__change_props(self, page_for_updates):
-        page_for_updates.get_page_properties()
         old_props = page_for_updates.obj.properties
         new_props = {
             "Tags": PropertyValue.create("multi_select", ["tag2"]),
@@ -548,12 +534,10 @@ class TestElement:
         }
         page = page_for_updates.page_update(properties=new_props)
         assert isinstance(page.obj, Page)
-        page.get_page_properties()
         assert "tag2" in page.obj.properties["Tags"].value
         assert page.obj.properties["done"].value is False
 
         old_page = page.page_update(properties=old_props)
-        old_page.get_page_properties()
         assert "tag1" in old_page.obj.properties["Tags"].value
         assert old_page.obj.properties["done"].value is True
 
@@ -650,7 +634,6 @@ class TestElement:
         page = no.pages.from_linkto(link)
         assert isinstance(page.obj, Page)
         assert page.obj.id == "878d628488d94894ab14f9b872cd6870"
-        page.get_page_properties(title_only=True)
         assert str(page.obj) == "Pytion Tests"
 
     def test_from_linkto__child(self, page_some_texts):

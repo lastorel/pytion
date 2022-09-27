@@ -22,11 +22,13 @@ See [Change Log](./CHANGELOG.md)
 
 1. [Quick Start](#quick-start)
 2. [Pytion API](#pytion-api)
-   1. [pytion.api.Element](#pytionapielement)
+   1. [Searching](#search)
+   2. [pytion.api.Element](#pytionapielement)
 3. [Models](#models)
    1. [pytion.models](#pytionmodels)
    2. [Supported block types](#supported-block-types)
-   3. [Block creating examples](#block-creating-examples)
+   3. [Supported Property types](#supported-property-types)
+   4. [Block creating examples](#block-creating-examples)
 4. [Logging](#logging)
 
 ## Quick start
@@ -162,6 +164,7 @@ There is a list of available methods for communicate with **api.notion.com**. Th
 `.get_page_property(property_id, id_, limit)` - Retrieve a page property item.
 
 `.get_page_properties(title_only, obj)` - Retrieve the title or all properties of current Page or Page `obj`
+*(deprecated, useful for v1.3.0 only)*
 
 `.db_query(id_, limit, filter_, sorts)` - Query Database.
 
@@ -210,7 +213,6 @@ There are classes **based on API** structures:
   - use `.db_filter()` to get database content with filtering and/or sorting
 - `Page` based on [Page object](https://developers.notion.com/reference/page)
   - You can create object `Page.create(...)` and/or use `.page_create(...)` API method
-  - use `.get_page_properties()` to retrieve page title and other `PropertyValue`-s 
   - use `.page_update()` method to modify attributes or delete the page
   - use `.get_block_children()` to get page content (without nested blocks) (it will be `BlockArray`)
   - use `.get_block_children_recursive()` to get page content with nested blocks
@@ -307,10 +309,36 @@ Extension attributes are listed below in support matrix:
 
 ### Supported Property types
 
-| Property type | Property type | Property Schema | Property Values | Property Item | Config attrs |
-| --- | --- | --- | --- | --- | --- |
-| `title` | rw | rw | rw | + |  |
-| in_progress... | rw | rw | rw | + |  |
+| Property type         | value type          | read (DB) | read value (Page) | create (DB) | create value (Page) | Oper attrs                         | Config attrs                      |
+|-----------------------|---------------------|-----------|-------------------|-------------|---------------------|------------------------------------|-----------------------------------|
+| `title`               | `RichTextArray`     | +         | +                 | +           | +                   |                                    |                                   |
+| `rich_text`           | `RichTextArray`     | +         | +                 | +           | +                   |                                    |                                   |
+| `number`              | `int`/`float`       | +         | +                 | +           | +                   |                                    | ~~format~~                        |
+| `select`              | `str`               | +         | +                 | +           | +                   |                                    | ~~options~~                       |
+| `multi_select`        | `List[str]`         | +         | +                 | +           | +                   |                                    | ~~options~~                       |
+| `status`              |                     | -         | -                 | -           | -                   |                                    | ~~options~~ ~~groups~~            |
+| `date`                | `str`               | +         | +                 | +           | +                   | `start: datetime` `end: datetime`* |                                   |
+| `people`              | `List[User]`        | +         | +                 | +           | +**                 |                                    |                                   |
+| `files`               |                     | +         | -                 | +           | -                   |                                    |                                   |
+| `checkbox`            | `bool`              | +         | +                 | +           | +                   |                                    |                                   |
+| `url`                 | `str`               | +         | +                 | +           | +                   |                                    |                                   |
+| `email`               | `str`               | +         | +                 | +           | +                   |                                    |                                   |
+| `phone_number`        | `str`               | +         | +                 | +           | +                   |                                    |                                   |
+| `formula`             |                     | -         | +                 | -           | -                   |                                    |                                   |
+| `relation`            | `List[LinkTo]`      | +         | +                 | +           | +                   |                                    | `single_property`/`dual_property` |
+| `rollup`              | depends on relation | -         | +                 | -           | -                   |                                    |                                   |
+| `created_time`***     | `datetime`          | +         | +                 | +           | -                   |                                    |                                   |
+| `created_by`***       | `User`              | +         | +                 | +           | -                   |                                    |                                   |
+| `last_edited_time`*** | `datetime`          | +         | +                 | +           | -                   |                                    |                                   |
+| `last_edited_by`***   | `User`              | +         | +                 | +           | -                   |                                    |                                   |
+
+> [*] - Create examples:  
+> `pv = PropertyValue.create(type_="date", value=datetime.now())`  
+> `pv = PropertyValue.create(type_="date", date={"start": str(datetime(2022, 2, 1, 5)), "end": str(datetime.now())})`  
+> [**] - Create example:  
+> `user = User.create('1d393ffb5efd4d09adfc2cb6738e4812')`  
+> `pv = PropertyValue.create(type_="people", value=[user])`  
+> [***] - Every Base model like Page already has mandatory attributes created/last_edited returned by API
 
 ### Block creating examples
 

@@ -229,6 +229,7 @@ class Element(object):
 
     def get_page_property(self, property_id: str, id_: Optional[str] = None, limit: int = 0) -> Optional[Element]:
         """
+        DEPRECATED
         Retrieve a page property item.
 
         :param property_id: ID of property in current database
@@ -300,10 +301,7 @@ class Element(object):
         )
         if r["object"] != "list":
             return None
-        pa = Element(api=self.api, name="pages", obj=PageArray(r["results"]))
-        for p in pa.obj:
-            pa.get_page_properties(title_only=True, obj=p)
-        return pa
+        return Element(api=self.api, name="pages", obj=PageArray(r["results"]))
 
     def db_filter(self, title: str = None, **kwargs) -> Optional[Element]:
         """

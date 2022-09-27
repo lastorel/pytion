@@ -367,12 +367,12 @@ class PropertyValue(Property):
                 elif len(data["rollup"]["array"]) == 1:
                     self.value = PropertyValue(data["rollup"]["array"][0], rollup_type)
                 else:
-                    self.value = [PropertyValue(element, rollup_type) for element in data["rollup"]["array"]]
+                    self.value = [PropertyValue(element, rollup_type).value for element in data["rollup"]["array"]]
 
-            if rollup_type == "number":
+            elif rollup_type == "number":
                 self.value: Optional[int, float] = data["rollup"]["number"]
 
-            if rollup_type == "date":
+            elif rollup_type == "date":
                 if data["rollup"]["date"]:
                     self.value: Optional[str] = data["rollup"]["date"].get("start")
                     self.start: Optional[datetime] = Model.format_iso_time(data["rollup"]["date"].get("start"))
@@ -539,10 +539,15 @@ class Page(Model):
         self.url: str = kwargs.get("url")
         self.children = kwargs["children"] if "children" in kwargs else LinkTo(block=self)
         self.properties = {
-            name: (Property(data) if not isinstance(data, PropertyValue) else data)
+            name: (PropertyValue(data, name) if not isinstance(data, PropertyValue) else data)
             for name, data in kwargs["properties"].items()
         }
-        self.title = "unknown"
+        for p in self.properties.values():
+            if "title" in p.type:
+                self.title = p.value
+                break
+        else:
+            self.title = None
 
     def __str__(self):
         return str(self.title)
