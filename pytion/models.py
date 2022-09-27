@@ -367,12 +367,12 @@ class PropertyValue(Property):
                 elif len(data["rollup"]["array"]) == 1:
                     self.value = PropertyValue(data["rollup"]["array"][0], rollup_type)
                 else:
-                    self.value = [PropertyValue(element, rollup_type) for element in data["rollup"]["array"]]
+                    self.value = [PropertyValue(element, rollup_type).value for element in data["rollup"]["array"]]
 
-            if rollup_type == "number":
+            elif rollup_type == "number":
                 self.value: Optional[int, float] = data["rollup"]["number"]
 
-            if rollup_type == "date":
+            elif rollup_type == "date":
                 if data["rollup"]["date"]:
                     self.value: Optional[str] = data["rollup"]["date"].get("start")
                     self.start: Optional[datetime] = Model.format_iso_time(data["rollup"]["date"].get("start"))

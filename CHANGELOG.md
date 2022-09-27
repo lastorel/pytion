@@ -2,6 +2,7 @@
 
 ## v1.3.1
 - [#32](https://github.com/lastorel/pytion/issues/32): Rollback of Page retrieving with properties
+- [#35](https://github.com/lastorel/pytion/issues/35): Fix PropertyValue with rollup type
 
 ## v1.3.0
 
