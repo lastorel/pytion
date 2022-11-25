@@ -232,6 +232,11 @@ class Property(object):
                     self.relation_property_id = data[self.type][self.subtype].get("synced_property_id")
                     self.relation_property_name = data[self.type][self.subtype].get("synced_property_name")
 
+        if self.type == "status":
+            if isinstance(data[self.type], dict):
+                self.options = data[self.type].get("options", [])
+                self.groups = data[self.type].get("groups", [])
+
     def __str__(self):
         return self.name if self.name else self.type
 
@@ -251,6 +256,13 @@ class Property(object):
             # create relation type property with configuration
             if self.type == "relation":
                 data[self.type] = {self.subtype: {}, "database_id": self.relation.id}
+            elif self.type == "status":
+                data[self.type] = {}
+                # not configurable
+                # if self.options:
+                #     data[self.type]["options"] = self.options
+                # if self.groups:
+                #     data[self.type]["groups"] = self.groups
             else:
                 data[self.type] = {}
         return data
@@ -259,6 +271,7 @@ class Property(object):
     def create(cls, type_: Optional[str] = "", **kwargs):
         """
         Property Schema Object (watch docs)
+        :param type_: see "create (DB)" column in "Supported Property types" matrix of README
 
         + addons:
         set type_ = `None` to delete this Property
@@ -272,6 +285,8 @@ class Property(object):
         if type_ == "relation":
             subtype = next(kwarg for kwarg in kwargs if kwarg in ("single_property", "dual_property"))
             kwargs["relation"] = {"type": subtype, subtype: {}, "database_id": kwargs[subtype]}
+        elif type_ == "status":
+            kwargs["status"] = {}
         return cls({"type": type_, **kwargs})
 
 
@@ -358,6 +373,9 @@ class PropertyValue(Property):
                 LinkTo.create(page_id=item.get("id")) if not isinstance(item, LinkTo) else item
                 for item in data[self.type]
             ]
+
+        if self.type == "status":
+            self.value = data[self.type].get("name") if isinstance(data[self.type], dict) else data[self.type]
 
         if self.type == "rollup":
             rollup_type = data["rollup"]["type"]
@@ -449,6 +467,10 @@ class PropertyValue(Property):
         # relation type
         if self.type == "relation":
             return {self.type: [{"id": lt.id} for lt in self.value]}
+
+        # status type
+        if self.type == "status":
+            return {self.type: {"name": self.value}}
 
         # unsupported types:
         if self.type in ["files"]:
