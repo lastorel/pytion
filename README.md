@@ -309,36 +309,37 @@ Extension attributes are listed below in support matrix:
 
 ### Supported Property types
 
-| Property type         | value type          | read (DB) | read value (Page) | create (DB) | create value (Page) | Oper attrs                         | Config attrs                      |
-|-----------------------|---------------------|-----------|-------------------|-------------|---------------------|------------------------------------|-----------------------------------|
-| `title`               | `RichTextArray`     | +         | +                 | +           | +                   |                                    |                                   |
-| `rich_text`           | `RichTextArray`     | +         | +                 | +           | +                   |                                    |                                   |
-| `number`              | `int`/`float`       | +         | +                 | +           | +                   |                                    | ~~format~~                        |
-| `select`              | `str`               | +         | +                 | +           | +                   |                                    | ~~options~~                       |
-| `multi_select`        | `List[str]`         | +         | +                 | +           | +                   |                                    | ~~options~~                       |
-| `status`              |                     | -         | -                 | -           | -                   |                                    | ~~options~~ ~~groups~~            |
-| `date`                | `str`               | +         | +                 | +           | +                   | `start: datetime` `end: datetime`* |                                   |
-| `people`              | `List[User]`        | +         | +                 | +           | +**                 |                                    |                                   |
-| `files`               |                     | +         | -                 | +           | -                   |                                    |                                   |
-| `checkbox`            | `bool`              | +         | +                 | +           | +                   |                                    |                                   |
-| `url`                 | `str`               | +         | +                 | +           | +                   |                                    |                                   |
-| `email`               | `str`               | +         | +                 | +           | +                   |                                    |                                   |
-| `phone_number`        | `str`               | +         | +                 | +           | +                   |                                    |                                   |
-| `formula`             |                     | -         | +                 | -           | -                   |                                    |                                   |
-| `relation`            | `List[LinkTo]`      | +         | +                 | +           | +                   |                                    | `single_property`/`dual_property` |
-| `rollup`              | depends on relation | -         | +                 | -           | -                   |                                    |                                   |
-| `created_time`***     | `datetime`          | +         | +                 | +           | -                   |                                    |                                   |
-| `created_by`***       | `User`              | +         | +                 | +           | -                   |                                    |                                   |
-| `last_edited_time`*** | `datetime`          | +         | +                 | +           | -                   |                                    |                                   |
-| `last_edited_by`***   | `User`              | +         | +                 | +           | -                   |                                    |                                   |
+| Property type            | value type          | read (DB) | read value (Page) | create (DB) | create value (Page) | Oper attrs                          | Config attrs                      |
+|--------------------------|---------------------|-----------|-------------------|-------------|---------------------|-------------------------------------|-----------------------------------|
+| `title`                  | `RichTextArray`     | +         | +                 | +           | +                   |                                     |                                   |
+| `rich_text`              | `RichTextArray`     | +         | +                 | +           | +                   |                                     |                                   |
+| `number`                 | `int`/`float`       | +         | +                 | +           | +                   |                                     | ~~format~~                        |
+| `select`                 | `str`               | +         | +                 | +           | +                   |                                     | ~~options~~                       |
+| `multi_select`           | `List[str]`         | +         | +                 | +           | +                   |                                     | ~~options~~                       |
+| `status`                 | `str`               | +         | +                 | +           | +\*\*\*\*           |                                     | `options`, `groups` (read-only)   |
+| `date`                   | `str`               | +         | +                 | +           | +                   | `start: datetime` `end: datetime`\* |                                   |
+| `people`                 | `List[User]`        | +         | +                 | +           | +\*\*               |                                     |                                   |
+| `files`                  |                     | +         | -                 | +           | -                   |                                     |                                   |
+| `checkbox`               | `bool`              | +         | +                 | +           | +                   |                                     |                                   |
+| `url`                    | `str`               | +         | +                 | +           | +                   |                                     |                                   |
+| `email`                  | `str`               | +         | +                 | +           | +                   |                                     |                                   |
+| `phone_number`           | `str`               | +         | +                 | +           | +                   |                                     |                                   |
+| `formula`                |                     | -         | +                 | -           | -                   |                                     |                                   |
+| `relation`               | `List[LinkTo]`      | +         | +                 | +           | +                   |                                     | `single_property`/`dual_property` |
+| `rollup`                 | depends on relation | -         | +                 | -           | -                   |                                     |                                   |
+| `created_time`\*\*\*     | `datetime`          | +         | +                 | +           | -                   |                                     |                                   |
+| `created_by`\*\*\*       | `User`              | +         | +                 | +           | -                   |                                     |                                   |
+| `last_edited_time`\*\*\* | `datetime`          | +         | +                 | +           | -                   |                                     |                                   |
+| `last_edited_by`\*\*\*   | `User`              | +         | +                 | +           | -                   |                                     |                                   |
 
-> [*] - Create examples:  
+> [\*] - Create examples:  
 > `pv = PropertyValue.create(type_="date", value=datetime.now())`  
 > `pv = PropertyValue.create(type_="date", date={"start": str(datetime(2022, 2, 1, 5)), "end": str(datetime.now())})`  
-> [**] - Create example:  
+> [\*\*] - Create example:  
 > `user = User.create('1d393ffb5efd4d09adfc2cb6738e4812')`  
 > `pv = PropertyValue.create(type_="people", value=[user])`  
-> [***] - Every Base model like Page already has mandatory attributes created/last_edited returned by API
+> [\*\*\*] - Every Base model like Page already has mandatory attributes created/last_edited returned by API  
+> [\*\*\*\*] - Status type is not configurable. API doesn't support NEW options added via Property modify or updating a Page
 
 ### Block creating examples
 

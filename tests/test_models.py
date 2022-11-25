@@ -43,3 +43,22 @@ class TestProperty:
         assert isinstance(p.relation, LinkTo)
         assert p.relation.uri == "databases"
         assert p.subtype == "dual_property"
+
+    def test_create__status(self):
+        p = Property.create("status")
+        p_dict = p.get()
+        assert p.id is None
+        assert p.type == "status"
+        assert p.to_delete is False
+        assert isinstance(p.options, list)
+        assert isinstance(p.groups, list)
+        assert bool(p_dict["status"]) is False
+
+
+class TestPropertyValue:
+    def test_create__status(self):
+        p = PropertyValue.create("status", value="Done")
+        p_dict = p.get()
+        assert p.id is None
+        assert p.type == "status"
+        assert p_dict["status"]["name"] == "Done"
