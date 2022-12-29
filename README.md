@@ -38,7 +38,7 @@ pip install pytion
 ```
 
 Create new integration and get your Notion API Token at notion.so -> [here](https://www.notion.com/my-integrations).  
-Invite your new integration 'manager' to your pages or databases.
+Add your new integration 'manager' to your pages or databases by going to the page's menu (⃛three dots), at the bottom of the menu clicking on Add connections and then searching for you new Intigration.
 
 ```python
 from pytion import Notion; no = Notion(token=SOME_TOKEN)
