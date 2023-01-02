@@ -632,6 +632,8 @@ class Block(Model):
                 self.caption = kwargs["caption"]
                 if isinstance(self.caption, str):
                     self.caption = RichTextArray.create(self.caption)
+            if "is_toggleable" in kwargs:
+                self.is_toggleable = kwargs["is_toggleable"]
             return
         self.parent = kwargs["parent"] if isinstance(kwargs.get("parent"), LinkTo) else LinkTo(**kwargs["parent"])
 
@@ -646,6 +648,7 @@ class Block(Model):
             r_text = RichTextArray(kwargs[self.type].get("rich_text"))
             self.text = RichTextArray.create(prefix) + r_text
             self._plain_text = r_text.simple
+            self.is_toggleable: bool = kwargs[self.type].get("is_toggleable")
 
         elif self.type == "callout":
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
@@ -868,15 +871,31 @@ class Block(Model):
         ]:
 
             text = RichTextArray.create(self.text) if isinstance(self.text, str) else self.text
+
+            # base content
             new_dict = {self.type: {"rich_text": text.get()}}
+
+            # to_do type attrs
             if self.type == "to_do" and hasattr(self, "checked"):
                 new_dict[self.type]["checked"] = self.checked
-            if self.type == "code":
+
+            # code type attrs
+            elif self.type == "code":
                 new_dict[self.type]["language"] = getattr(self, "language", "plain text")
                 if hasattr(self, "caption"):
                     new_dict[self.type]["caption"] = self.caption.get()
-            if self.type == "child_database":
+
+            # child_database type struct
+            elif self.type == "child_database":
                 new_dict = {self.type: {"title": str(text)}}
+
+            # heading_X types attrs
+            elif "heading" in self.type:
+                if hasattr(self, "is_toggleable") and isinstance(self.is_toggleable, bool):
+                    new_dict[self.type]["is_toggleable"] = self.is_toggleable
+                else:
+                    new_dict[self.type]["is_toggleable"] = False
+
             if with_object_type:
                 new_dict["object"] = "block"
                 new_dict["type"] = self.type
@@ -897,9 +916,10 @@ class Block(Model):
         :param text:   Block content
         :param type_:  Block types (API)
         :param kwargs:
-            :kwargs param checked:  bool for to_do
-            :kwargs param language: str for code
-            :kwargs param caption:  str or RichTextArray for code
+            :kwargs param checked:          bool for to_do
+            :kwargs param language:         str for code
+            :kwargs param caption:          str or RichTextArray for code
+            :kwargs param is_toggleable:    bool for heading_1, heading_2, heading_3
         :return:
         """
         new_dict = {

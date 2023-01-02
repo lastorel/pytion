@@ -211,6 +211,7 @@ There are classes **based on API** structures:
   - use `.db_update()` API method for modify a real database (for ex. properties or title)
   - use `.db_query()` to get all database content (it will be `PageArray`)
   - use `.db_filter()` to get database content with filtering and/or sorting
+  - has `.is_inline` attr with the value True if the database appears in the page as an inline block
 - `Page` based on [Page object](https://developers.notion.com/reference/page)
   - You can create object `Page.create(...)` and/or use `.page_create(...)` API method
   - use `.page_update()` method to modify attributes or delete the page
@@ -248,6 +249,41 @@ There are also useful **internal** classes:
 - `ElementArray` is found while using `.search()` endpoint. It's a parent of `PageArray`
 
 > And every model has a `.get()` method that returns API friendly JSON.
+ 
+### Supported Property types
+
+| Property type            | value type          | read (DB) | read value (Page) | create (DB) | create value (Page) | Oper attrs                          | Config attrs                        |
+|--------------------------|---------------------|-----------|-------------------|-------------|---------------------|-------------------------------------|-------------------------------------|
+| `title`                  | `RichTextArray`     | +         | +                 | +           | +                   |                                     |                                     |
+| `rich_text`              | `RichTextArray`     | +         | +                 | +           | +                   |                                     |                                     |
+| `number`                 | `int`/`float`       | +         | +                 | +           | +                   |                                     | ~~format~~                          |
+| `select`                 | `str`               | +         | +                 | +           | +                   |                                     | ~~options~~                         |
+| `multi_select`           | `List[str]`         | +         | +                 | +           | +                   |                                     | ~~options~~                         |
+| `status`                 | `str`               | +         | +                 | +           | +\*\*\*\*           |                                     | `options`, `groups` (read-only)     |
+| `date`                   | `str`               | +         | +                 | +           | +                   | `start: datetime` `end: datetime`\* |                                     |
+| `people`                 | `List[User]`        | +         | +                 | +           | +\*\*               |                                     |                                     |
+| `files`                  |                     | +         | -                 | +           | -                   |                                     |                                     |
+| `checkbox`               | `bool`              | +         | +                 | +           | +                   |                                     |                                     |
+| `url`                    | `str`               | +         | +                 | +           | +                   |                                     |                                     |
+| `email`                  | `str`               | +         | +                 | +           | +                   |                                     |                                     |
+| `phone_number`           | `str`               | +         | +                 | +           | +                   |                                     |                                     |
+| `formula`                |                     | -         | +                 | -           | -                   |                                     |                                     |
+| `relation`               | `List[LinkTo]`      | +         | +                 | +           | +                   |                                     | `single_property` / `dual_property` |
+| `rollup`                 | depends on relation | -         | +                 | -           | -                   |                                     |                                     |
+| `created_time`\*\*\*     | `datetime`          | +         | +                 | +           | -                   |                                     |                                     |
+| `created_by`\*\*\*       | `User`              | +         | +                 | +           | -                   |                                     |                                     |
+| `last_edited_time`\*\*\* | `datetime`          | +         | +                 | +           | -                   |                                     |                                     |
+| `last_edited_by`\*\*\*   | `User`              | +         | +                 | +           | -                   |                                     |                                     |
+
+> [\*] - Create examples:  
+> `pv = PropertyValue.create(type_="date", value=datetime.now())`  
+> `pv = PropertyValue.create(type_="date", date={"start": str(datetime(2022, 2, 1, 5)), "end": str(datetime.now())})`  
+> [\*\*] - Create example:  
+> `user = User.create('1d393ffb5efd4d09adfc2cb6738e4812')`  
+> `pv = PropertyValue.create(type_="people", value=[user])`  
+> [\*\*\*] - Every Base model like Page already has mandatory attributes created/last_edited returned by API  
+> [\*\*\*\*] - Status type is not configurable. API doesn't support NEW options added via Property modify or updating a Page
+
 
 ### Supported block types
 
@@ -270,76 +306,42 @@ Every Block has mandatory attributes and extension attributes. There are mandato
 
 Extension attributes are listed below in support matrix:
 
-| Block Type | Description | Read support | Create support | Can have children | Extension attributes |
-| --- | --- | --- | --- | --- | --- |
-| `paragraph` | Simple Block with text | + | + | + |  |
-| `heading_1` | Heading Block with text highest level | + | - | - |  |
-| `heading_2` | Heading Block with text medium level | + | - | - |  |
-| `heading_3` | Heading Block with text lowest level | + | - | - |  |
-| `bulleted_list_item` | Text Block with bullet | + | - | + |  |
-| `numbered_list_item` | Text Block with number | + | - | + |  |
-| `to_do` | Text Block with checkbox | + | + | + | `checked: bool` |
-| `toggle` | Text Block with toggle to children blocks | + | - | + |  |
-| `code` | Text Block with code style | + | + | + | `language: str`, `caption: RichTextArray` |
-| `child_page` | Page inside | + | - | + |  |
-| `child_database` | Database inside | + | - | + |  |
-| `embed` | Embed online content | + | - | - | `caption: RichTextArray` |
-| `image` | Embed image content | + | - | - | `caption: RichTextArray`, `expiry_time: datetime` |
-| `video` | Embed video content | + | - | - | `caption: RichTextArray`, `expiry_time: datetime` |
-| `file` | Embed file content | + | - | - | `caption: RichTextArray`, `expiry_time: datetime` |
-| `pdf` | Embed pdf content | + | - | - | `caption: RichTextArray`, `expiry_time: datetime` |
-| `bookmark` | Block for URL Link | + | - | - | `caption: RichTextArray` |
-| `callout` | Highlighted footnote text Block | + | - | + | `icon: dict` |
-| `quote` | Text Block with quote style | + | - | + |  |
-| `equation` | KaTeX compatible text Block | + | - | - |  |
-| `divider` | Simple line to divide the page | + | - | - |  |
-| `table_of_contents` | Block with content structure in the page | + | - | - |  |
-| `column` |  | - | - | + |  |
-| `column_list` |  | - | - | - |  |
-| `link_preview` |  Same as `bookmark` | + | - | - |  |
-| `synced_block` | Block for synced content aka parent | + | - | + | `synced_from: LinkTo` |
-| `template` | Template Block title | + | - | + |  |
-| `link_to_page` | Block with link to particular page `@...` | + | - | - | `link: LinkTo` |
-| `table` | Table Block with some attrs | + | - | + | `table_width: int` |
-| `table_row` | Children Blocks with table row content | + | - | - |  |
-| `breadcrumb` | Empty Block actually | + | - | - |  |
-| `unsupported` | Blocks unsupported by API | + | - | - |  |
+| Block Type           | Description                               | Read support | Create support | Can have children | Extension attributes                              |
+|----------------------|-------------------------------------------|--------------|----------------|-------------------|---------------------------------------------------|
+| `paragraph`          | Simple Block with text                    | +            | +              | +                 |                                                   |
+| `heading_1`          | Heading Block with text highest level     | +            | +              | -/+\*             | `is_toggleable: bool`                             |
+| `heading_2`          | Heading Block with text medium level      | +            | +              | -/+\*             | `is_toggleable: bool`                             |
+| `heading_3`          | Heading Block with text lowest level      | +            | +              | -/+\*             | `is_toggleable: bool`                             |
+| `bulleted_list_item` | Text Block with bullet                    | +            | -              | +                 |                                                   |
+| `numbered_list_item` | Text Block with number                    | +            | -              | +                 |                                                   |
+| `to_do`              | Text Block with checkbox                  | +            | +              | +                 | `checked: bool`                                   |
+| `toggle`             | Text Block with toggle to children blocks | +            | -              | +                 |                                                   |
+| `code`               | Text Block with code style                | +            | +              | +                 | `language: str`, `caption: RichTextArray`         |
+| `child_page`         | Page inside                               | +            | -              | +                 |                                                   |
+| `child_database`     | Database inside                           | +            | -              | +                 |                                                   |
+| `embed`              | Embed online content                      | +            | -              | -                 | `caption: RichTextArray`                          |
+| `image`              | Embed image content                       | +            | -              | -                 | `caption: RichTextArray`, `expiry_time: datetime` |
+| `video`              | Embed video content                       | +            | -              | -                 | `caption: RichTextArray`, `expiry_time: datetime` |
+| `file`               | Embed file content                        | +            | -              | -                 | `caption: RichTextArray`, `expiry_time: datetime` |
+| `pdf`                | Embed pdf content                         | +            | -              | -                 | `caption: RichTextArray`, `expiry_time: datetime` |
+| `bookmark`           | Block for URL Link                        | +            | -              | -                 | `caption: RichTextArray`                          |
+| `callout`            | Highlighted footnote text Block           | +            | -              | +                 | `icon: dict`                                      |
+| `quote`              | Text Block with quote style               | +            | -              | +                 |                                                   |
+| `equation`           | KaTeX compatible text Block               | +            | -              | -                 |                                                   |
+| `divider`            | Simple line to divide the page            | +            | -              | -                 |                                                   |
+| `table_of_contents`  | Block with content structure in the page  | +            | -              | -                 |                                                   |
+| `column`             |                                           | -            | -              | +                 |                                                   |
+| `column_list`        |                                           | -            | -              | -                 |                                                   |
+| `link_preview`       | Same as `bookmark`                        | +            | -              | -                 |                                                   |
+| `synced_block`       | Block for synced content aka parent       | +            | -              | +                 | `synced_from: LinkTo`                             |
+| `template`           | Template Block title                      | +            | -              | +                 |                                                   |
+| `link_to_page`       | Block with link to particular page `@...` | +            | -              | -                 | `link: LinkTo`                                    |
+| `table`              | Table Block with some attrs               | +            | -              | +                 | `table_width: int`                                |
+| `table_row`          | Children Blocks with table row content    | +            | -              | -                 |                                                   |
+| `breadcrumb`         | Empty Block actually                      | +            | -              | -                 |                                                   |
+| `unsupported`        | Blocks unsupported by API                 | +            | -              | -                 |                                                   |
 
-> API converts **toggle heading** Block to simple heading Block.
-
-### Supported Property types
-
-| Property type            | value type          | read (DB) | read value (Page) | create (DB) | create value (Page) | Oper attrs                          | Config attrs                      |
-|--------------------------|---------------------|-----------|-------------------|-------------|---------------------|-------------------------------------|-----------------------------------|
-| `title`                  | `RichTextArray`     | +         | +                 | +           | +                   |                                     |                                   |
-| `rich_text`              | `RichTextArray`     | +         | +                 | +           | +                   |                                     |                                   |
-| `number`                 | `int`/`float`       | +         | +                 | +           | +                   |                                     | ~~format~~                        |
-| `select`                 | `str`               | +         | +                 | +           | +                   |                                     | ~~options~~                       |
-| `multi_select`           | `List[str]`         | +         | +                 | +           | +                   |                                     | ~~options~~                       |
-| `status`                 | `str`               | +         | +                 | +           | +\*\*\*\*           |                                     | `options`, `groups` (read-only)   |
-| `date`                   | `str`               | +         | +                 | +           | +                   | `start: datetime` `end: datetime`\* |                                   |
-| `people`                 | `List[User]`        | +         | +                 | +           | +\*\*               |                                     |                                   |
-| `files`                  |                     | +         | -                 | +           | -                   |                                     |                                   |
-| `checkbox`               | `bool`              | +         | +                 | +           | +                   |                                     |                                   |
-| `url`                    | `str`               | +         | +                 | +           | +                   |                                     |                                   |
-| `email`                  | `str`               | +         | +                 | +           | +                   |                                     |                                   |
-| `phone_number`           | `str`               | +         | +                 | +           | +                   |                                     |                                   |
-| `formula`                |                     | -         | +                 | -           | -                   |                                     |                                   |
-| `relation`               | `List[LinkTo]`      | +         | +                 | +           | +                   |                                     | `single_property`/`dual_property` |
-| `rollup`                 | depends on relation | -         | +                 | -           | -                   |                                     |                                   |
-| `created_time`\*\*\*     | `datetime`          | +         | +                 | +           | -                   |                                     |                                   |
-| `created_by`\*\*\*       | `User`              | +         | +                 | +           | -                   |                                     |                                   |
-| `last_edited_time`\*\*\* | `datetime`          | +         | +                 | +           | -                   |                                     |                                   |
-| `last_edited_by`\*\*\*   | `User`              | +         | +                 | +           | -                   |                                     |                                   |
-
-> [\*] - Create examples:  
-> `pv = PropertyValue.create(type_="date", value=datetime.now())`  
-> `pv = PropertyValue.create(type_="date", date={"start": str(datetime(2022, 2, 1, 5)), "end": str(datetime.now())})`  
-> [\*\*] - Create example:  
-> `user = User.create('1d393ffb5efd4d09adfc2cb6738e4812')`  
-> `pv = PropertyValue.create(type_="people", value=[user])`  
-> [\*\*\*] - Every Base model like Page already has mandatory attributes created/last_edited returned by API  
-> [\*\*\*\*] - Status type is not configurable. API doesn't support NEW options added via Property modify or updating a Page
+> [\*] - `heading_X` blocks can have children if `is_toggleable` is True 
 
 ### Block creating examples
 
@@ -375,6 +377,22 @@ Create `code` block object:
 from pytion.models import Block
 my_code_block = Block.create("code example here", type_="code", language="javascript")
 my_code_block2 = Block.create("another code example", type_="code", caption="it will be plain text code block with caption")
+```
+
+Create `heading` block object:
+
+```python
+from pytion.models import Block
+my_code_block = Block.create("Title 1 example here", type_="heading_1")
+my_code_block2 = Block.create("Toggle Title 2", type_="heading_2", is_toggleable=True)
+```
+
+### Block deleting
+
+```python
+no.blocks.block_update("3d4af9f0f98641dea8c44e3864eed4d0", archived=True)
+# or if you have Element with Block object already
+block.block_update(archived=True)
 ```
 
 ## Logging

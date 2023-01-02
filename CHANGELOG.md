@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.3.3
+- [#43](https://github.com/lastorel/pytion/issues/43): full support of `heading` type blocks
+
 ## v1.3.2
 - [#34](https://github.com/lastorel/pytion/issues/34): `status` Property type added
 
