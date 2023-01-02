@@ -228,6 +228,7 @@ There are classes **based on API** structures:
   - You can create object `User.create(...)` and use it in some properties like `people` type property
   - You can retrieve more data about a User by his ID using `.get()`
   - use `.get_myself()` to retrieve the current bot User
+  - has `.workspace_name` attr for `bot` type users
 - `Property` based on [Property object](https://developers.notion.com/reference/property-object)
   - You can create object `Property.create(...)` while creating or editing database: `.db_create()` or `.db_update()`
   - `formula`, `rollup` type properties configuration is not supported

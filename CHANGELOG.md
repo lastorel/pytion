@@ -1,12 +1,16 @@
 # Changelog
 
 ## v1.3.3
+
+- [#44](https://github.com/lastorel/pytion/issues/44): `workspace_name` for `bot` type User 
 - [#43](https://github.com/lastorel/pytion/issues/43): full support of `heading` type blocks
 
 ## v1.3.2
+
 - [#34](https://github.com/lastorel/pytion/issues/34): `status` Property type added
 
 ## v1.3.1
+
 - [#32](https://github.com/lastorel/pytion/issues/32): Rollback of Page retrieving with properties
 - [#35](https://github.com/lastorel/pytion/issues/35): Fix PropertyValue with rollup type
 

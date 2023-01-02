@@ -161,8 +161,13 @@ class User(object):
         self.avatar_url = kwargs.get("avatar_url")
         if self.type == "person" and kwargs.get(self.type):
             self.email = kwargs[self.type].get("email")
+            self.workspace_name = None
+        elif self.type == "bot":
+            self.email = None
+            self.workspace_name = kwargs[self.type].get("workspace_name")
         else:
             self.email = None
+            self.workspace_name = None
         self.raw = kwargs
 
     def __str__(self):
@@ -426,29 +431,29 @@ class PropertyValue(Property):
             return {self.type: self.value}
 
         # empty values
-        if not self.value:
+        elif not self.value:
             if self.type in ["multi_select", "relation", "rich_text", "people", "files"]:
                 return {self.type: []}
             return {self.type: None}
 
         # RichTextArray
-        if self.type in ["title", "rich_text"] and hasattr(self.value, "get"):
+        elif self.type in ["title", "rich_text"] and hasattr(self.value, "get"):
             return {self.type: self.value.get()}
 
         # simple values
-        if self.type in ["number", "url", "email", "phone_number"]:
+        elif self.type in ["number", "url", "email", "phone_number"]:
             return {self.type: self.value}
 
         # select type
-        if self.type == "select":
+        elif self.type == "select":
             return {self.type: {"name": self.value}}
 
         # multi-select type
-        if self.type == "multi_select":
+        elif self.type == "multi_select":
             return {self.type: [{"name": tag} for tag in self.value]}
 
         # date type
-        if self.type == "date" and hasattr(self, "start") and hasattr(self, "end"):
+        elif self.type == "date" and hasattr(self, "start") and hasattr(self, "end"):
             with_time = True if self.start.hour or self.start.minute else False
             if self.start:
                 start = self.start.astimezone().isoformat() if with_time else str(self.start.date())
@@ -461,23 +466,23 @@ class PropertyValue(Property):
             return {self.type: {"start": start, "end": end}}
 
         # people type
-        if self.type == "people":
+        elif self.type == "people":
             return {self.type: [user.get() for user in self.value]}
 
         # relation type
-        if self.type == "relation":
+        elif self.type == "relation":
             return {self.type: [{"id": lt.id} for lt in self.value]}
 
         # status type
-        if self.type == "status":
+        elif self.type == "status":
             return {self.type: {"name": self.value}}
 
         # unsupported types:
-        if self.type in ["files"]:
+        elif self.type in ["files"]:
             return {self.type: []}
-        if self.type in ["created_time", "last_edited_by", "last_edited_time", "created_by"]:
+        elif self.type in ["created_time", "last_edited_by", "last_edited_time", "created_by"]:
             return None
-        if self.type in ["formula", "rollup"]:
+        elif self.type in ["formula", "rollup"]:
             return {self.type: {}}
         return None
 
