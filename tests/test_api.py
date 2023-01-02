@@ -389,6 +389,21 @@ class TestElement:
         assert isinstance(pages.obj, PageArray)
         assert len(pages.obj) == 0
 
+    def test_db_filter__date_this_week(self, little_database):
+        pages = little_database.db_filter(
+            property_name="created", property_type="created_time", condition="this_week"
+        )
+        assert isinstance(pages.obj, PageArray)
+        assert len(pages.obj) == 0
+
+    def test_db_filter__status(self, little_database):
+        pages = little_database.db_filter(
+            property_name="Status", property_type="status", value="Done"
+        )
+        assert isinstance(pages.obj, PageArray)
+        assert len(pages.obj) == 1
+        assert str(pages.obj[0].title) == "wait, what?"
+
     def test_db_filter__sort_desc(self, little_database):
         pages = little_database.db_filter("", descending="created")
         assert isinstance(pages.obj, PageArray)

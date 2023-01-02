@@ -2,6 +2,8 @@
 
 ## v1.3.3
 
+- [#46](https://github.com/lastorel/pytion/issues/46): `this_week` filter condition for database query
+- `status` type Properties DB filtering added
 - [#44](https://github.com/lastorel/pytion/issues/44): `workspace_name` for `bot` type User 
 - [#43](https://github.com/lastorel/pytion/issues/43): full support of `heading` type blocks
 

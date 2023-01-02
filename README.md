@@ -26,12 +26,15 @@ See [Change Log](./CHANGELOG.md)
    2. [pytion.api.Element](#pytionapielement)
 3. [Models](#models)
    1. [pytion.models](#pytionmodels)
-   2. [Supported block types](#supported-block-types)
-   3. [Supported Property types](#supported-property-types)
-   4. [Block creating examples](#block-creating-examples)
+   2. [Supported Property types](#supported-property-types)
+   3. [Supported block types](#supported-block-types)
+      1. [Block creating examples](#block-creating-examples)
+      2. [Block deleting](#block-deleting)
+   4. [Database operations](#database-operations)
+      1. [Retrieving](#retrieving)
 4. [Logging](#logging)
 
-## Quick start
+# Quick start
 
 ```
 pip install pytion
@@ -91,7 +94,7 @@ Use https://api.notion.com/v1/pages/90ea1231865f4af28055b855c2fba267
 https://developers.notion.com/changelog?page=2
 ```
 
-## Pytion API
+# Pytion API
 
 Almost all operations are carried out through `Notion` or `Element` object:
 
@@ -135,7 +138,7 @@ new_page = page.page_update(title="new page name 2")
 # new_page.obj is equal page.obj except title and last_edited properties
 ```
 
-### Search
+## Search
 
 There is a search example:
 ```python
@@ -149,7 +152,7 @@ print(r.obj)
 ```
 
 
-### pytion.api.Element
+## pytion.api.Element
 
 There is a list of available methods for communicate with **api.notion.com**. These methods are better structured in [next chapter](#pytionmodels).
 
@@ -192,7 +195,7 @@ There is a list of available methods for communicate with **api.notion.com**. Th
 
 > More details and usage examples of these methods you can see into func descriptions.
 
-## Models
+# Models
 
 ### pytion.models
 
@@ -286,7 +289,7 @@ There are also useful **internal** classes:
 > [\*\*\*\*] - Status type is not configurable. API doesn't support NEW options added via Property modify or updating a Page
 
 
-### Supported block types
+## Supported block types
 
 At present the API only supports the block types which are listed in the reference below. Any unsupported block types will continue to appear in the structure, but only contain a `type` set to `"unsupported"`.
 Colors are not yet supported.
@@ -396,7 +399,59 @@ no.blocks.block_update("3d4af9f0f98641dea8c44e3864eed4d0", archived=True)
 block.block_update(archived=True)
 ```
 
-## Logging
+## Database operations
+
+### Retrieving
+
+```python
+from pytion import Notion
+no = Notion(token=TOKEN)
+
+# get all pages from Database
+# example 1
+pages = no.databases.db_query("114f1ef1f1241e2f12f41fe2f")
+# example 2
+db = no.databases.get("114f1ef1f1241e2f12f41fe2f")
+pages = db.db_query()
+print(pages.obj)
+
+# get pages with "task" in title
+pages = db.db_filter("task")
+
+# get all pages with sorting by property name "Tags"
+pages = db.db_filter("", ascending="Tags")
+pages = db.db_filter("", descending="Tags")
+
+# get pages with Status property equals Done
+pages = db.db_filter(property_name="Status", property_type="status", value="Done")
+
+# get pages with Price property greater than 150
+pages = db.db_filter(property_name="Price", property_type="number", condition="greater_than", value=150)
+
+# complex query
+pages = db.db_filter(
+    property_name="WorkTime", property_type="date", condition="before",
+    value=datetime.now(), descending="Deadline", limit=25
+)
+```
+
+> Queries with multifiltering and multisorting are not supported  
+> But you can compose your custom filter dict from API reference and call `db.db_filter(raw={...})` 
+
+Filter conditions and types combination -> [Official API reference](https://developers.notion.com/reference/post-database-query-filter)
+
+After you got `pages` which is `Element` object, you can not call API methods directly on `pages`
+because there is `PageArray` object with List of Pages.
+If you need to change a Page or something else, you can follow these steps:
+
+```python
+# 1. create new Element object with non-list object type
+page = no.pages.from_object(pages.obj[14])  # choosed page from the PageArray
+# 2. call the desired API method on this page
+page.page_update(archived=True)  # delete Page example
+```
+
+# Logging
 
 Logging is muted by default. To enable to stdout and/or to file:
 
