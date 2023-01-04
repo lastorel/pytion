@@ -161,8 +161,13 @@ class User(object):
         self.avatar_url = kwargs.get("avatar_url")
         if self.type == "person" and kwargs.get(self.type):
             self.email = kwargs[self.type].get("email")
+            self.workspace_name = None
+        elif self.type == "bot":
+            self.email = None
+            self.workspace_name = kwargs[self.type].get("workspace_name")
         else:
             self.email = None
+            self.workspace_name = None
         self.raw = kwargs
 
     def __str__(self):
@@ -373,6 +378,7 @@ class PropertyValue(Property):
                 LinkTo.create(page_id=item.get("id")) if not isinstance(item, LinkTo) else item
                 for item in data[self.type]
             ]
+            self.has_more = data["has_more"] if "has_more" in data else False
 
         if self.type == "status":
             self.value = data[self.type].get("name") if isinstance(data[self.type], dict) else data[self.type]
@@ -426,29 +432,29 @@ class PropertyValue(Property):
             return {self.type: self.value}
 
         # empty values
-        if not self.value:
+        elif not self.value:
             if self.type in ["multi_select", "relation", "rich_text", "people", "files"]:
                 return {self.type: []}
             return {self.type: None}
 
         # RichTextArray
-        if self.type in ["title", "rich_text"] and hasattr(self.value, "get"):
+        elif self.type in ["title", "rich_text"] and hasattr(self.value, "get"):
             return {self.type: self.value.get()}
 
         # simple values
-        if self.type in ["number", "url", "email", "phone_number"]:
+        elif self.type in ["number", "url", "email", "phone_number"]:
             return {self.type: self.value}
 
         # select type
-        if self.type == "select":
+        elif self.type == "select":
             return {self.type: {"name": self.value}}
 
         # multi-select type
-        if self.type == "multi_select":
+        elif self.type == "multi_select":
             return {self.type: [{"name": tag} for tag in self.value]}
 
         # date type
-        if self.type == "date" and hasattr(self, "start") and hasattr(self, "end"):
+        elif self.type == "date" and hasattr(self, "start") and hasattr(self, "end"):
             with_time = True if self.start.hour or self.start.minute else False
             if self.start:
                 start = self.start.astimezone().isoformat() if with_time else str(self.start.date())
@@ -461,30 +467,41 @@ class PropertyValue(Property):
             return {self.type: {"start": start, "end": end}}
 
         # people type
-        if self.type == "people":
+        elif self.type == "people":
             return {self.type: [user.get() for user in self.value]}
 
         # relation type
-        if self.type == "relation":
+        elif self.type == "relation":
             return {self.type: [{"id": lt.id} for lt in self.value]}
 
         # status type
-        if self.type == "status":
+        elif self.type == "status":
             return {self.type: {"name": self.value}}
 
         # unsupported types:
-        if self.type in ["files"]:
+        elif self.type in ["files"]:
             return {self.type: []}
-        if self.type in ["created_time", "last_edited_by", "last_edited_time", "created_by"]:
+        elif self.type in ["created_time", "last_edited_by", "last_edited_time", "created_by"]:
             return None
-        if self.type in ["formula", "rollup"]:
+        elif self.type in ["formula", "rollup"]:
             return {self.type: {}}
         return None
 
     @classmethod
     def create(cls, type_: str = "", value: Any = None, **kwargs):
         """
-        Property Value Object (watch docs)
+        PropertyValue Schema Object (watch docs)
+        :param type_: see "create value (Page)" column in "Supported Property types" matrix of README
+        :param value: see "value type" column in "Supported Property types" matrix of README
+
+        ~ examples:
+        + relation type:
+        pv = PropertyValue.create("relation", value=[LinkTo.create(page_id="04262843082a478d97f741948a32613b")])
+        + people type:
+        pv = PropertyValue.create(type_="people", value=[User.create('1d393ffb5efd4d09adfc2cb6738e4812')])
+        + date type:
+        pv = PropertyValue.create(type_="date", value=datetime.now())
+        pv = PropertyValue.create(type_="date", date={"start": str(datetime(2022, 2, 1, 5)), "end": str(datetime.now())})
         """
         return cls({"type": type_, type_: value, **kwargs}, name="")
 
@@ -517,6 +534,14 @@ class Database(Model):
         }
         self.parent = kwargs["parent"] if isinstance(kwargs.get("parent"), LinkTo) else LinkTo(**kwargs["parent"])
         self.url: str = kwargs.get("url")
+        self.description = None
+        if "description" in kwargs and kwargs["description"]:
+            if isinstance(kwargs["description"], RichTextArray):
+                self.description = kwargs["description"]
+            elif isinstance(kwargs["description"], str):
+                self.description = RichTextArray.create(kwargs["description"])
+            else:
+                self.description = RichTextArray(kwargs["description"])
         self.is_inline: bool = kwargs.get("is_inline")
 
     def __str__(self):
@@ -532,6 +557,8 @@ class Database(Model):
         }
         if isinstance(self.title, RichTextArray):
             new_dict["title"] = self.title.get()
+        if self.description:
+            new_dict["description"] = self.description.get()
         return new_dict
 
     @classmethod
@@ -632,6 +659,8 @@ class Block(Model):
                 self.caption = kwargs["caption"]
                 if isinstance(self.caption, str):
                     self.caption = RichTextArray.create(self.caption)
+            if "is_toggleable" in kwargs:
+                self.is_toggleable = kwargs["is_toggleable"]
             return
         self.parent = kwargs["parent"] if isinstance(kwargs.get("parent"), LinkTo) else LinkTo(**kwargs["parent"])
 
@@ -646,6 +675,7 @@ class Block(Model):
             r_text = RichTextArray(kwargs[self.type].get("rich_text"))
             self.text = RichTextArray.create(prefix) + r_text
             self._plain_text = r_text.simple
+            self.is_toggleable: bool = kwargs[self.type].get("is_toggleable")
 
         elif self.type == "callout":
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
@@ -868,15 +898,31 @@ class Block(Model):
         ]:
 
             text = RichTextArray.create(self.text) if isinstance(self.text, str) else self.text
+
+            # base content
             new_dict = {self.type: {"rich_text": text.get()}}
+
+            # to_do type attrs
             if self.type == "to_do" and hasattr(self, "checked"):
                 new_dict[self.type]["checked"] = self.checked
-            if self.type == "code":
+
+            # code type attrs
+            elif self.type == "code":
                 new_dict[self.type]["language"] = getattr(self, "language", "plain text")
                 if hasattr(self, "caption"):
                     new_dict[self.type]["caption"] = self.caption.get()
-            if self.type == "child_database":
+
+            # child_database type struct
+            elif self.type == "child_database":
                 new_dict = {self.type: {"title": str(text)}}
+
+            # heading_X types attrs
+            elif "heading" in self.type:
+                if hasattr(self, "is_toggleable") and isinstance(self.is_toggleable, bool):
+                    new_dict[self.type]["is_toggleable"] = self.is_toggleable
+                else:
+                    new_dict[self.type]["is_toggleable"] = False
+
             if with_object_type:
                 new_dict["object"] = "block"
                 new_dict["type"] = self.type
@@ -897,9 +943,10 @@ class Block(Model):
         :param text:   Block content
         :param type_:  Block types (API)
         :param kwargs:
-            :kwargs param checked:  bool for to_do
-            :kwargs param language: str for code
-            :kwargs param caption:  str or RichTextArray for code
+            :kwargs param checked:          bool for to_do
+            :kwargs param language:         str for code
+            :kwargs param caption:          str or RichTextArray for code
+            :kwargs param is_toggleable:    bool for heading_1, heading_2, heading_3
         :return:
         """
         new_dict = {

@@ -205,7 +205,7 @@ class TestSort:
         r = little_database.db_query(sorts=s)
         assert isinstance(r.obj[0], Page)
         assert len(r.obj) == 4
-        assert str(r.obj[0]) == "wait, what?"
-        assert str(r.obj[2]) == "Parent testing page"
-        assert "friends" in str(r.obj[1])
-        assert bool(r.obj[3].title) is False
+        assert str(r.obj[0]) == "We are best friends, body"
+        assert str(r.obj[2]) == ""
+        assert "testing" in str(r.obj[1])
+        assert bool(r.obj[2].title) is False

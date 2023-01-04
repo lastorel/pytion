@@ -346,8 +346,12 @@ class Element(object):
         return None
 
     def db_create(
-            self, database_obj: Optional[Database] = None, parent: Optional[LinkTo] = None,
-            properties: Optional[Dict[str, Property]] = None, title: Optional[Union[str, RichTextArray]] = None
+            self,
+            database_obj: Optional[Database] = None,
+            parent: Optional[LinkTo] = None,
+            properties: Optional[Dict[str, Property]] = None,
+            title: Optional[Union[str, RichTextArray]] = None,
+            description: Optional[Union[str, RichTextArray]] = None,
     ) -> Optional[Element]:
         """
         :param database_obj:  you can provide `Database` object or -
@@ -355,6 +359,7 @@ class Element(object):
         :param parent:        parent object in LinkTo format. workspace can not be a parent
         :param properties:    dict of properties. Property with `title` type is mandatory!
         :param title:         your name of the Database
+        :param description:   optional description for new Database
         :return:              self.obj -> Database
 
         `parent = LinkTo.create(database_id="24512345125123421")`
@@ -376,7 +381,7 @@ class Element(object):
         else:
             if isinstance(title, str):
                 title = RichTextArray.create(title)
-            db = Database.create(parent=parent, properties=properties, title=title)
+            db = Database.create(parent=parent, properties=properties, title=title, description=description)
         created_db = self.api.session.method(method="post", path=self.name, data=db.get())
         self.obj = Database(**created_db)
         return self

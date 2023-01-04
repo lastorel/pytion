@@ -1,9 +1,20 @@
 # Changelog
 
+## v1.3.3
+
+- [#45](https://github.com/lastorel/pytion/issues/45): `has_more` property for relation PropertyValue
+- [#47](https://github.com/lastorel/pytion/issues/47): full support of `description` field for Database
+- [#46](https://github.com/lastorel/pytion/issues/46): `this_week` filter condition for database query
+- `status` type Properties DB filtering added
+- [#44](https://github.com/lastorel/pytion/issues/44): `workspace_name` for `bot` type User 
+- [#43](https://github.com/lastorel/pytion/issues/43): full support of `heading` type blocks
+
 ## v1.3.2
+
 - [#34](https://github.com/lastorel/pytion/issues/34): `status` Property type added
 
 ## v1.3.1
+
 - [#32](https://github.com/lastorel/pytion/issues/32): Rollback of Page retrieving with properties
 - [#35](https://github.com/lastorel/pytion/issues/35): Fix PropertyValue with rollup type
 

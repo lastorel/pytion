@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class Filter(object):
     _filter_condition_types = [
         "rich_text", "number", "checkbox", "select", "multi_select", "date", "phone_number", "people", "title",
-        "created_time", "last_edited_time", "phone_number"
+        "created_time", "last_edited_time", "phone_number", "status"
     ]
 
     def __init__(
@@ -91,6 +91,9 @@ class Filter(object):
                     self.value = value.isoformat()
             else:
                 self.value = str(value)
+        elif self.property_type == "status":
+            self.condition = "equals" if not condition else condition
+            self.value = str(value)
 
         if property_obj and not value:
             self.value = getattr(property_obj, "value", None)
@@ -98,7 +101,9 @@ class Filter(object):
                 self.value = self.value[0]
         if self.condition in ["is_empty", "is_not_empty"]:
             self.value = True
-        elif self.condition in ["past_week", "past_month", "past_year", "next_week", "next_month", "next_year"]:
+        elif self.condition in [
+            "past_week", "past_month", "past_year", "next_week", "next_month", "next_year", "this_week"
+        ]:
             self.value = {}
         self.filter = {
             "property": self.property_name,

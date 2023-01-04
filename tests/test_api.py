@@ -50,6 +50,8 @@ class TestElement:
         assert isinstance(database.obj, Database)
         assert database.obj.id == "0e9539099cff456d89e44684d6b6c701"
         assert str(database.obj.title) == "Little Database"
+        assert str(database.obj.description) == "Database has a super description! Don’t touch it!"
+        assert database.obj.is_inline is False
 
     def test_get__user(self, no):
         user = no.users.get("01c67faf3aba45ffaa022407f87c86a5")
@@ -389,6 +391,21 @@ class TestElement:
         assert isinstance(pages.obj, PageArray)
         assert len(pages.obj) == 0
 
+    def test_db_filter__date_this_week(self, little_database):
+        pages = little_database.db_filter(
+            property_name="created", property_type="created_time", condition="this_week"
+        )
+        assert isinstance(pages.obj, PageArray)
+        assert len(pages.obj) == 0
+
+    def test_db_filter__status(self, little_database):
+        pages = little_database.db_filter(
+            property_name="Status", property_type="status", value="Done"
+        )
+        assert isinstance(pages.obj, PageArray)
+        assert len(pages.obj) == 1
+        assert str(pages.obj[0].title) == "wait, what?"
+
     def test_db_filter__sort_desc(self, little_database):
         pages = little_database.db_filter("", descending="created")
         assert isinstance(pages.obj, PageArray)
@@ -411,10 +428,12 @@ class TestElement:
             "Status": Property.create("select"),
         }
         title = "DB 1"
-        database = no.databases.db_create(parent=parent, properties=properties, title=title)
+        description = "ABCDEF"
+        database = no.databases.db_create(parent=parent, properties=properties, title=title, description=description)
         assert isinstance(database.obj, Database)
         assert str(database.obj.title) == title
         assert "Status" in database.obj.properties
+        assert str(database.obj.description) == description
 
         # Delete database manually. There is no way to delete a database by API
 
@@ -622,12 +641,14 @@ class TestElement:
         assert isinstance(bot.obj, User)
         assert bot.obj.type == "bot"
         assert bot.obj.name == "Pytion tests"
+        assert bot.obj.workspace_name == "Yegor's Workspace"
 
     def test_get_myself__from_obj(self, root_page):
         bot = root_page.get_myself()
         assert isinstance(bot.obj, User)
         assert bot.obj.type == "bot"
         assert bot.obj.name == "Pytion tests"
+        assert bot.obj.workspace_name == "Yegor's Workspace"
 
     def test_from_linkto__base(self, no):
         link = LinkTo.create(page_id="878d628488d94894ab14f9b872cd6870")

@@ -26,12 +26,15 @@ See [Change Log](./CHANGELOG.md)
    2. [pytion.api.Element](#pytionapielement)
 3. [Models](#models)
    1. [pytion.models](#pytionmodels)
-   2. [Supported block types](#supported-block-types)
-   3. [Supported Property types](#supported-property-types)
-   4. [Block creating examples](#block-creating-examples)
+   2. [Supported Property types](#supported-property-types)
+   3. [Supported block types](#supported-block-types)
+      1. [Block creating examples](#block-creating-examples)
+      2. [Block deleting](#block-deleting)
+   4. [Database operations](#database-operations)
+      1. [Retrieving](#retrieving)
 4. [Logging](#logging)
 
-## Quick start
+# Quick start
 
 ```
 pip install pytion
@@ -91,7 +94,7 @@ Use https://api.notion.com/v1/pages/90ea1231865f4af28055b855c2fba267
 https://developers.notion.com/changelog?page=2
 ```
 
-## Pytion API
+# Pytion API
 
 Almost all operations are carried out through `Notion` or `Element` object:
 
@@ -135,7 +138,7 @@ new_page = page.page_update(title="new page name 2")
 # new_page.obj is equal page.obj except title and last_edited properties
 ```
 
-### Search
+## Search
 
 There is a search example:
 ```python
@@ -149,7 +152,7 @@ print(r.obj)
 ```
 
 
-### pytion.api.Element
+## pytion.api.Element
 
 There is a list of available methods for communicate with **api.notion.com**. These methods are better structured in [next chapter](#pytionmodels).
 
@@ -192,7 +195,7 @@ There is a list of available methods for communicate with **api.notion.com**. Th
 
 > More details and usage examples of these methods you can see into func descriptions.
 
-## Models
+# Models
 
 ### pytion.models
 
@@ -211,6 +214,8 @@ There are classes **based on API** structures:
   - use `.db_update()` API method for modify a real database (for ex. properties or title)
   - use `.db_query()` to get all database content (it will be `PageArray`)
   - use `.db_filter()` to get database content with filtering and/or sorting
+  - has `.description` attr
+  - has `.is_inline` attr with the value True if the database appears in the page as an inline block
 - `Page` based on [Page object](https://developers.notion.com/reference/page)
   - You can create object `Page.create(...)` and/or use `.page_create(...)` API method
   - use `.page_update()` method to modify attributes or delete the page
@@ -227,6 +232,7 @@ There are classes **based on API** structures:
   - You can create object `User.create(...)` and use it in some properties like `people` type property
   - You can retrieve more data about a User by his ID using `.get()`
   - use `.get_myself()` to retrieve the current bot User
+  - has `.workspace_name` attr for `bot` type users
 - `Property` based on [Property object](https://developers.notion.com/reference/property-object)
   - You can create object `Property.create(...)` while creating or editing database: `.db_create()` or `.db_update()`
   - `formula`, `rollup` type properties configuration is not supported
@@ -248,8 +254,43 @@ There are also useful **internal** classes:
 - `ElementArray` is found while using `.search()` endpoint. It's a parent of `PageArray`
 
 > And every model has a `.get()` method that returns API friendly JSON.
+ 
+### Supported Property types
 
-### Supported block types
+| Property type            | value type          | read (DB) | read value (Page) | create (DB) | create value (Page) | Oper attrs                          | Config attrs                        |
+|--------------------------|---------------------|-----------|-------------------|-------------|---------------------|-------------------------------------|-------------------------------------|
+| `title`                  | `RichTextArray`     | +         | +                 | +           | +                   |                                     |                                     |
+| `rich_text`              | `RichTextArray`     | +         | +                 | +           | +                   |                                     |                                     |
+| `number`                 | `int`/`float`       | +         | +                 | +           | +                   |                                     | ~~format~~                          |
+| `select`                 | `str`               | +         | +                 | +           | +                   |                                     | ~~options~~                         |
+| `multi_select`           | `List[str]`         | +         | +                 | +           | +                   |                                     | ~~options~~                         |
+| `status`                 | `str`               | +         | +                 | +           | +\*\*\*\*           |                                     | `options`, `groups` (read-only)     |
+| `date`                   | `str`               | +         | +                 | +           | +                   | `start: datetime` `end: datetime`\* |                                     |
+| `people`                 | `List[User]`        | +         | +                 | +           | +\*\*               |                                     |                                     |
+| `files`                  |                     | +         | -                 | +           | -                   |                                     |                                     |
+| `checkbox`               | `bool`              | +         | +                 | +           | +                   |                                     |                                     |
+| `url`                    | `str`               | +         | +                 | +           | +                   |                                     |                                     |
+| `email`                  | `str`               | +         | +                 | +           | +                   |                                     |                                     |
+| `phone_number`           | `str`               | +         | +                 | +           | +                   |                                     |                                     |
+| `formula`                |                     | -         | +                 | -           | -                   |                                     |                                     |
+| `relation`               | `List[LinkTo]`      | +         | +                 | +           | +                   | `has_more: bool`                    | `single_property` / `dual_property` |
+| `rollup`                 | depends on relation | -         | +                 | -           | -                   |                                     |                                     |
+| `created_time`\*\*\*     | `datetime`          | +         | +                 | +           | -                   |                                     |                                     |
+| `created_by`\*\*\*       | `User`              | +         | +                 | +           | -                   |                                     |                                     |
+| `last_edited_time`\*\*\* | `datetime`          | +         | +                 | +           | -                   |                                     |                                     |
+| `last_edited_by`\*\*\*   | `User`              | +         | +                 | +           | -                   |                                     |                                     |
+
+> [\*] - Create examples:  
+> `pv = PropertyValue.create(type_="date", value=datetime.now())`  
+> `pv = PropertyValue.create(type_="date", date={"start": str(datetime(2022, 2, 1, 5)), "end": str(datetime.now())})`  
+> [\*\*] - Create example:  
+> `user = User.create('1d393ffb5efd4d09adfc2cb6738e4812')`  
+> `pv = PropertyValue.create(type_="people", value=[user])`  
+> [\*\*\*] - Every Base model like Page already has mandatory attributes created/last_edited returned by API  
+> [\*\*\*\*] - Status type is not configurable. API doesn't support NEW options added via Property modify or updating a Page
+
+
+## Supported block types
 
 At present the API only supports the block types which are listed in the reference below. Any unsupported block types will continue to appear in the structure, but only contain a `type` set to `"unsupported"`.
 Colors are not yet supported.
@@ -270,76 +311,42 @@ Every Block has mandatory attributes and extension attributes. There are mandato
 
 Extension attributes are listed below in support matrix:
 
-| Block Type | Description | Read support | Create support | Can have children | Extension attributes |
-| --- | --- | --- | --- | --- | --- |
-| `paragraph` | Simple Block with text | + | + | + |  |
-| `heading_1` | Heading Block with text highest level | + | - | - |  |
-| `heading_2` | Heading Block with text medium level | + | - | - |  |
-| `heading_3` | Heading Block with text lowest level | + | - | - |  |
-| `bulleted_list_item` | Text Block with bullet | + | - | + |  |
-| `numbered_list_item` | Text Block with number | + | - | + |  |
-| `to_do` | Text Block with checkbox | + | + | + | `checked: bool` |
-| `toggle` | Text Block with toggle to children blocks | + | - | + |  |
-| `code` | Text Block with code style | + | + | + | `language: str`, `caption: RichTextArray` |
-| `child_page` | Page inside | + | - | + |  |
-| `child_database` | Database inside | + | - | + |  |
-| `embed` | Embed online content | + | - | - | `caption: RichTextArray` |
-| `image` | Embed image content | + | - | - | `caption: RichTextArray`, `expiry_time: datetime` |
-| `video` | Embed video content | + | - | - | `caption: RichTextArray`, `expiry_time: datetime` |
-| `file` | Embed file content | + | - | - | `caption: RichTextArray`, `expiry_time: datetime` |
-| `pdf` | Embed pdf content | + | - | - | `caption: RichTextArray`, `expiry_time: datetime` |
-| `bookmark` | Block for URL Link | + | - | - | `caption: RichTextArray` |
-| `callout` | Highlighted footnote text Block | + | - | + | `icon: dict` |
-| `quote` | Text Block with quote style | + | - | + |  |
-| `equation` | KaTeX compatible text Block | + | - | - |  |
-| `divider` | Simple line to divide the page | + | - | - |  |
-| `table_of_contents` | Block with content structure in the page | + | - | - |  |
-| `column` |  | - | - | + |  |
-| `column_list` |  | - | - | - |  |
-| `link_preview` |  Same as `bookmark` | + | - | - |  |
-| `synced_block` | Block for synced content aka parent | + | - | + | `synced_from: LinkTo` |
-| `template` | Template Block title | + | - | + |  |
-| `link_to_page` | Block with link to particular page `@...` | + | - | - | `link: LinkTo` |
-| `table` | Table Block with some attrs | + | - | + | `table_width: int` |
-| `table_row` | Children Blocks with table row content | + | - | - |  |
-| `breadcrumb` | Empty Block actually | + | - | - |  |
-| `unsupported` | Blocks unsupported by API | + | - | - |  |
+| Block Type           | Description                               | Read support | Create support | Can have children | Extension attributes                              |
+|----------------------|-------------------------------------------|--------------|----------------|-------------------|---------------------------------------------------|
+| `paragraph`          | Simple Block with text                    | +            | +              | +                 |                                                   |
+| `heading_1`          | Heading Block with text highest level     | +            | +              | -/+\*             | `is_toggleable: bool`                             |
+| `heading_2`          | Heading Block with text medium level      | +            | +              | -/+\*             | `is_toggleable: bool`                             |
+| `heading_3`          | Heading Block with text lowest level      | +            | +              | -/+\*             | `is_toggleable: bool`                             |
+| `bulleted_list_item` | Text Block with bullet                    | +            | -              | +                 |                                                   |
+| `numbered_list_item` | Text Block with number                    | +            | -              | +                 |                                                   |
+| `to_do`              | Text Block with checkbox                  | +            | +              | +                 | `checked: bool`                                   |
+| `toggle`             | Text Block with toggle to children blocks | +            | -              | +                 |                                                   |
+| `code`               | Text Block with code style                | +            | +              | +                 | `language: str`, `caption: RichTextArray`         |
+| `child_page`         | Page inside                               | +            | -              | +                 |                                                   |
+| `child_database`     | Database inside                           | +            | -              | +                 |                                                   |
+| `embed`              | Embed online content                      | +            | -              | -                 | `caption: RichTextArray`                          |
+| `image`              | Embed image content                       | +            | -              | -                 | `caption: RichTextArray`, `expiry_time: datetime` |
+| `video`              | Embed video content                       | +            | -              | -                 | `caption: RichTextArray`, `expiry_time: datetime` |
+| `file`               | Embed file content                        | +            | -              | -                 | `caption: RichTextArray`, `expiry_time: datetime` |
+| `pdf`                | Embed pdf content                         | +            | -              | -                 | `caption: RichTextArray`, `expiry_time: datetime` |
+| `bookmark`           | Block for URL Link                        | +            | -              | -                 | `caption: RichTextArray`                          |
+| `callout`            | Highlighted footnote text Block           | +            | -              | +                 | `icon: dict`                                      |
+| `quote`              | Text Block with quote style               | +            | -              | +                 |                                                   |
+| `equation`           | KaTeX compatible text Block               | +            | -              | -                 |                                                   |
+| `divider`            | Simple line to divide the page            | +            | -              | -                 |                                                   |
+| `table_of_contents`  | Block with content structure in the page  | +            | -              | -                 |                                                   |
+| `column`             |                                           | -            | -              | +                 |                                                   |
+| `column_list`        |                                           | -            | -              | -                 |                                                   |
+| `link_preview`       | Same as `bookmark`                        | +            | -              | -                 |                                                   |
+| `synced_block`       | Block for synced content aka parent       | +            | -              | +                 | `synced_from: LinkTo`                             |
+| `template`           | Template Block title                      | +            | -              | +                 |                                                   |
+| `link_to_page`       | Block with link to particular page `@...` | +            | -              | -                 | `link: LinkTo`                                    |
+| `table`              | Table Block with some attrs               | +            | -              | +                 | `table_width: int`                                |
+| `table_row`          | Children Blocks with table row content    | +            | -              | -                 |                                                   |
+| `breadcrumb`         | Empty Block actually                      | +            | -              | -                 |                                                   |
+| `unsupported`        | Blocks unsupported by API                 | +            | -              | -                 |                                                   |
 
-> API converts **toggle heading** Block to simple heading Block.
-
-### Supported Property types
-
-| Property type            | value type          | read (DB) | read value (Page) | create (DB) | create value (Page) | Oper attrs                          | Config attrs                      |
-|--------------------------|---------------------|-----------|-------------------|-------------|---------------------|-------------------------------------|-----------------------------------|
-| `title`                  | `RichTextArray`     | +         | +                 | +           | +                   |                                     |                                   |
-| `rich_text`              | `RichTextArray`     | +         | +                 | +           | +                   |                                     |                                   |
-| `number`                 | `int`/`float`       | +         | +                 | +           | +                   |                                     | ~~format~~                        |
-| `select`                 | `str`               | +         | +                 | +           | +                   |                                     | ~~options~~                       |
-| `multi_select`           | `List[str]`         | +         | +                 | +           | +                   |                                     | ~~options~~                       |
-| `status`                 | `str`               | +         | +                 | +           | +\*\*\*\*           |                                     | `options`, `groups` (read-only)   |
-| `date`                   | `str`               | +         | +                 | +           | +                   | `start: datetime` `end: datetime`\* |                                   |
-| `people`                 | `List[User]`        | +         | +                 | +           | +\*\*               |                                     |                                   |
-| `files`                  |                     | +         | -                 | +           | -                   |                                     |                                   |
-| `checkbox`               | `bool`              | +         | +                 | +           | +                   |                                     |                                   |
-| `url`                    | `str`               | +         | +                 | +           | +                   |                                     |                                   |
-| `email`                  | `str`               | +         | +                 | +           | +                   |                                     |                                   |
-| `phone_number`           | `str`               | +         | +                 | +           | +                   |                                     |                                   |
-| `formula`                |                     | -         | +                 | -           | -                   |                                     |                                   |
-| `relation`               | `List[LinkTo]`      | +         | +                 | +           | +                   |                                     | `single_property`/`dual_property` |
-| `rollup`                 | depends on relation | -         | +                 | -           | -                   |                                     |                                   |
-| `created_time`\*\*\*     | `datetime`          | +         | +                 | +           | -                   |                                     |                                   |
-| `created_by`\*\*\*       | `User`              | +         | +                 | +           | -                   |                                     |                                   |
-| `last_edited_time`\*\*\* | `datetime`          | +         | +                 | +           | -                   |                                     |                                   |
-| `last_edited_by`\*\*\*   | `User`              | +         | +                 | +           | -                   |                                     |                                   |
-
-> [\*] - Create examples:  
-> `pv = PropertyValue.create(type_="date", value=datetime.now())`  
-> `pv = PropertyValue.create(type_="date", date={"start": str(datetime(2022, 2, 1, 5)), "end": str(datetime.now())})`  
-> [\*\*] - Create example:  
-> `user = User.create('1d393ffb5efd4d09adfc2cb6738e4812')`  
-> `pv = PropertyValue.create(type_="people", value=[user])`  
-> [\*\*\*] - Every Base model like Page already has mandatory attributes created/last_edited returned by API  
-> [\*\*\*\*] - Status type is not configurable. API doesn't support NEW options added via Property modify or updating a Page
+> [\*] - `heading_X` blocks can have children if `is_toggleable` is True 
 
 ### Block creating examples
 
@@ -377,7 +384,75 @@ my_code_block = Block.create("code example here", type_="code", language="javasc
 my_code_block2 = Block.create("another code example", type_="code", caption="it will be plain text code block with caption")
 ```
 
-## Logging
+Create `heading` block object:
+
+```python
+from pytion.models import Block
+my_code_block = Block.create("Title 1 example here", type_="heading_1")
+my_code_block2 = Block.create("Toggle Title 2", type_="heading_2", is_toggleable=True)
+```
+
+### Block deleting
+
+```python
+no.blocks.block_update("3d4af9f0f98641dea8c44e3864eed4d0", archived=True)
+# or if you have Element with Block object already
+block.block_update(archived=True)
+```
+
+## Database operations
+
+### Retrieving
+
+```python
+from pytion import Notion
+no = Notion(token=TOKEN)
+
+# get all pages from Database
+# example 1
+pages = no.databases.db_query("114f1ef1f1241e2f12f41fe2f")
+# example 2
+db = no.databases.get("114f1ef1f1241e2f12f41fe2f")
+pages = db.db_query()
+print(pages.obj)
+
+# get pages with "task" in title
+pages = db.db_filter("task")
+
+# get all pages with sorting by property name "Tags"
+pages = db.db_filter("", ascending="Tags")
+pages = db.db_filter("", descending="Tags")
+
+# get pages with Status property equals Done
+pages = db.db_filter(property_name="Status", property_type="status", value="Done")
+
+# get pages with Price property greater than 150
+pages = db.db_filter(property_name="Price", property_type="number", condition="greater_than", value=150)
+
+# complex query
+pages = db.db_filter(
+    property_name="WorkTime", property_type="date", condition="before",
+    value=datetime.now(), descending="Deadline", limit=25
+)
+```
+
+> Queries with multifiltering and multisorting are not supported  
+> But you can compose your custom filter dict from API reference and call `db.db_filter(raw={...})` 
+
+Filter conditions and types combination -> [Official API reference](https://developers.notion.com/reference/post-database-query-filter)
+
+After you got `pages` which is `Element` object, you can not call API methods directly on `pages`
+because there is `PageArray` object with List of Pages.
+If you need to change a Page or something else, you can follow these steps:
+
+```python
+# 1. create new Element object with non-list object type
+page = no.pages.from_object(pages.obj[14])  # choosed page from the PageArray
+# 2. call the desired API method on this page
+page.page_update(archived=True)  # delete Page example
+```
+
+# Logging
 
 Logging is muted by default. To enable to stdout and/or to file:
 
