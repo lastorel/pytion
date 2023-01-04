@@ -2,6 +2,7 @@
 
 ## v1.3.3
 
+- [#45](https://github.com/lastorel/pytion/issues/45): `has_more` property for relation PropertyValue
 - [#47](https://github.com/lastorel/pytion/issues/47): full support of `description` field for Database
 - [#46](https://github.com/lastorel/pytion/issues/46): `this_week` filter condition for database query
 - `status` type Properties DB filtering added

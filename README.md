@@ -273,7 +273,7 @@ There are also useful **internal** classes:
 | `email`                  | `str`               | +         | +                 | +           | +                   |                                     |                                     |
 | `phone_number`           | `str`               | +         | +                 | +           | +                   |                                     |                                     |
 | `formula`                |                     | -         | +                 | -           | -                   |                                     |                                     |
-| `relation`               | `List[LinkTo]`      | +         | +                 | +           | +                   |                                     | `single_property` / `dual_property` |
+| `relation`               | `List[LinkTo]`      | +         | +                 | +           | +                   | `has_more: bool`                    | `single_property` / `dual_property` |
 | `rollup`                 | depends on relation | -         | +                 | -           | -                   |                                     |                                     |
 | `created_time`\*\*\*     | `datetime`          | +         | +                 | +           | -                   |                                     |                                     |
 | `created_by`\*\*\*       | `User`              | +         | +                 | +           | -                   |                                     |                                     |

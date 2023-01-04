@@ -57,11 +57,19 @@ class TestProperty:
 
 class TestPropertyValue:
     def test_create__status(self):
-        p = PropertyValue.create("status", value="Done")
-        p_dict = p.get()
-        assert p.id is None
-        assert p.type == "status"
+        pv = PropertyValue.create("status", value="Done")
+        p_dict = pv.get()
+        assert pv.id is None
+        assert pv.type == "status"
         assert p_dict["status"]["name"] == "Done"
+
+    def test_create__relation(self):
+        pv = PropertyValue.create("relation", value=[LinkTo.create(page_id="04262843082a478d97f741948a32613c")])
+        p_dict = pv.get()
+        assert pv.id is None
+        assert pv.type == "relation"
+        assert pv.has_more is False
+        assert p_dict["relation"][0]["id"] == "04262843082a478d97f741948a32613c"
 
 
 class TestBlock:

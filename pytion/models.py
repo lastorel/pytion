@@ -378,6 +378,7 @@ class PropertyValue(Property):
                 LinkTo.create(page_id=item.get("id")) if not isinstance(item, LinkTo) else item
                 for item in data[self.type]
             ]
+            self.has_more = data["has_more"] if "has_more" in data else False
 
         if self.type == "status":
             self.value = data[self.type].get("name") if isinstance(data[self.type], dict) else data[self.type]
@@ -489,7 +490,18 @@ class PropertyValue(Property):
     @classmethod
     def create(cls, type_: str = "", value: Any = None, **kwargs):
         """
-        Property Value Object (watch docs)
+        PropertyValue Schema Object (watch docs)
+        :param type_: see "create value (Page)" column in "Supported Property types" matrix of README
+        :param value: see "value type" column in "Supported Property types" matrix of README
+
+        ~ examples:
+        + relation type:
+        pv = PropertyValue.create("relation", value=[LinkTo.create(page_id="04262843082a478d97f741948a32613b")])
+        + people type:
+        pv = PropertyValue.create(type_="people", value=[User.create('1d393ffb5efd4d09adfc2cb6738e4812')])
+        + date type:
+        pv = PropertyValue.create(type_="date", value=datetime.now())
+        pv = PropertyValue.create(type_="date", date={"start": str(datetime(2022, 2, 1, 5)), "end": str(datetime.now())})
         """
         return cls({"type": type_, type_: value, **kwargs}, name="")
 
