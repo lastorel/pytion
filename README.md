@@ -214,6 +214,7 @@ There are classes **based on API** structures:
   - use `.db_update()` API method for modify a real database (for ex. properties or title)
   - use `.db_query()` to get all database content (it will be `PageArray`)
   - use `.db_filter()` to get database content with filtering and/or sorting
+  - has `.description` attr
   - has `.is_inline` attr with the value True if the database appears in the page as an inline block
 - `Page` based on [Page object](https://developers.notion.com/reference/page)
   - You can create object `Page.create(...)` and/or use `.page_create(...)` API method

@@ -2,6 +2,7 @@
 
 ## v1.3.3
 
+- [#47](https://github.com/lastorel/pytion/issues/47): full support of `description` field for Database
 - [#46](https://github.com/lastorel/pytion/issues/46): `this_week` filter condition for database query
 - `status` type Properties DB filtering added
 - [#44](https://github.com/lastorel/pytion/issues/44): `workspace_name` for `bot` type User 

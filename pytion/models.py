@@ -522,6 +522,14 @@ class Database(Model):
         }
         self.parent = kwargs["parent"] if isinstance(kwargs.get("parent"), LinkTo) else LinkTo(**kwargs["parent"])
         self.url: str = kwargs.get("url")
+        self.description = None
+        if "description" in kwargs and kwargs["description"]:
+            if isinstance(kwargs["description"], RichTextArray):
+                self.description = kwargs["description"]
+            elif isinstance(kwargs["description"], str):
+                self.description = RichTextArray.create(kwargs["description"])
+            else:
+                self.description = RichTextArray(kwargs["description"])
         self.is_inline: bool = kwargs.get("is_inline")
 
     def __str__(self):
@@ -537,6 +545,8 @@ class Database(Model):
         }
         if isinstance(self.title, RichTextArray):
             new_dict["title"] = self.title.get()
+        if self.description:
+            new_dict["description"] = self.description.get()
         return new_dict
 
     @classmethod

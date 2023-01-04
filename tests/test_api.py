@@ -50,6 +50,8 @@ class TestElement:
         assert isinstance(database.obj, Database)
         assert database.obj.id == "0e9539099cff456d89e44684d6b6c701"
         assert str(database.obj.title) == "Little Database"
+        assert str(database.obj.description) == "Database has a super description! Don’t touch it!"
+        assert database.obj.is_inline is False
 
     def test_get__user(self, no):
         user = no.users.get("01c67faf3aba45ffaa022407f87c86a5")
@@ -426,10 +428,12 @@ class TestElement:
             "Status": Property.create("select"),
         }
         title = "DB 1"
-        database = no.databases.db_create(parent=parent, properties=properties, title=title)
+        description = "ABCDEF"
+        database = no.databases.db_create(parent=parent, properties=properties, title=title, description=description)
         assert isinstance(database.obj, Database)
         assert str(database.obj.title) == title
         assert "Status" in database.obj.properties
+        assert str(database.obj.description) == description
 
         # Delete database manually. There is no way to delete a database by API
 
