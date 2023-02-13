@@ -6,11 +6,23 @@ from typing import Optional, Union, Dict, List
 
 import pytion.envs as envs
 from pytion.query import Request, Filter, Sort
-from pytion.models import Database, Page, Block, BlockArray, PropertyValue, PageArray, LinkTo, RichTextArray, Property
+from pytion.models import (
+    Database,
+    Page,
+    Block,
+    BlockArray,
+    PropertyValue,
+    PageArray,
+    LinkTo,
+    RichTextArray,
+    Property,
+)
 from pytion.models import ElementArray, User
 
 
-Models = Union[Database, Page, Block, BlockArray, PropertyValue, PageArray, ElementArray]
+Models = Union[
+    Database, Page, Block, BlockArray, PropertyValue, PageArray, ElementArray
+]
 logger = logging.getLogger(__name__)
 
 
@@ -27,8 +39,11 @@ class Notion(object):
         logger.debug(f"API object created. Version {envs.NOTION_VERSION}")
 
     def search(
-            self, query: Optional[str] = None, limit: int = 0,
-            object_type: Optional[str] = None, sort_last_edited_time: Optional[str] = None
+        self,
+        query: Optional[str] = None,
+        limit: int = 0,
+        object_type: Optional[str] = None,
+        sort_last_edited_time: Optional[str] = None,
     ) -> Optional[Element]:
         """
         Searches all original pages, databases, and child pages/databases that are shared with the integration.
@@ -45,11 +60,22 @@ class Notion(object):
         `print(r.obj)`
         """
         data = {"query": query} if query else None
-        filter_ = Filter(raw={"property": "object", "value": object_type}) if object_type else None
+        filter_ = (
+            Filter(raw={"property": "object", "value": object_type})
+            if object_type
+            else None
+        )
         if sort_last_edited_time:
-            sort_last_edited_time = Sort(property_name="last_edited_time", direction=sort_last_edited_time)
+            sort_last_edited_time = Sort(
+                property_name="last_edited_time", direction=sort_last_edited_time
+            )
         result = self.session.method(
-            "post", "search", sort=sort_last_edited_time, filter_=filter_, limit=limit, data=data
+            "post",
+            "search",
+            sort=sort_last_edited_time,
+            filter_=filter_,
+            limit=limit,
+            data=data,
         )
         if "results" in result and isinstance(result["results"], list):
             data = ElementArray(result["results"])
@@ -101,10 +127,16 @@ class Element(object):
         if "-" in id_:
             id_ = id_.replace("-", "")
         if not _after_path:
-            raw_obj = self.api.session.method(method="get", path=self.name, id_=id_, limit=limit)
+            raw_obj = self.api.session.method(
+                method="get", path=self.name, id_=id_, limit=limit
+            )
         else:
             raw_obj = self.api.session.method(
-                method="get", path=self.name, id_=id_, after_path=_after_path, limit=limit
+                method="get",
+                path=self.name,
+                id_=id_,
+                after_path=_after_path,
+                limit=limit,
             )
         if raw_obj["object"] == "list":
             if self.name == "pages":
@@ -139,7 +171,7 @@ class Element(object):
         return None
 
     def get_block_children(
-            self, id_: Optional[str] = None, block: Optional[Block] = None, limit: int = 0
+        self, id_: Optional[str] = None, block: Optional[Block] = None, limit: int = 0
     ) -> Optional[Element]:
         """
         Get children Block objects of current Block object (tabulated texts) if exist (else None)
@@ -180,8 +212,13 @@ class Element(object):
         return Element(api=self.api, name="blocks", obj=BlockArray(child["results"]))
 
     def get_block_children_recursive(
-        self, id_: Optional[str] = None, max_depth: int = 10, block: Optional[Block] = None,
-        _cur_depth: int = 0, limit: int = 0, force: bool = False
+        self,
+        id_: Optional[str] = None,
+        max_depth: int = 10,
+        block: Optional[Block] = None,
+        _cur_depth: int = 0,
+        limit: int = 0,
+        force: bool = False,
     ) -> Optional[Element]:
         """
         Get children Block objects of current Block object (tabulated texts) if exist (else None) recursive
@@ -220,14 +257,22 @@ class Element(object):
             if block_obj.type == "child_page" and not force:
                 continue
             if block_obj.has_children and _cur_depth < max_depth:
-                sub_element = Element(api=self.api, name="blocks").get_block_children_recursive(
-                    id_=block_obj.id, max_depth=max_depth, _cur_depth=_cur_depth + 1, limit=limit, force=force
+                sub_element = Element(
+                    api=self.api, name="blocks"
+                ).get_block_children_recursive(
+                    id_=block_obj.id,
+                    max_depth=max_depth,
+                    _cur_depth=_cur_depth + 1,
+                    limit=limit,
+                    force=force,
                 )
                 ba.extend(sub_element.obj)
 
         return Element(api=self.api, name="blocks", obj=ba)
 
-    def get_page_property(self, property_id: str, id_: Optional[str] = None, limit: int = 0) -> Optional[Element]:
+    def get_page_property(
+        self, property_id: str, id_: Optional[str] = None, limit: int = 0
+    ) -> Optional[Element]:
         """
         DEPRECATED
         Retrieve a page property item.
@@ -251,11 +296,21 @@ class Element(object):
         if self.obj and not id_:
             id_ = self.obj.id
         property_obj = self.api.session.method(
-            method="get", path=self.name, id_=id_, after_path="properties/"+property_id, limit=limit
+            method="get",
+            path=self.name,
+            id_=id_,
+            after_path="properties/" + property_id,
+            limit=limit,
         )
-        return Element(api=self.api, name=f"pages/{id_}/properties", obj=PropertyValue(property_obj, property_id))
+        return Element(
+            api=self.api,
+            name=f"pages/{id_}/properties",
+            obj=PropertyValue(property_obj, property_id),
+        )
 
-    def get_page_properties(self, title_only: bool = False, obj: Optional[Page] = None) -> None:
+    def get_page_properties(
+        self, title_only: bool = False, obj: Optional[Page] = None
+    ) -> None:
         """
         Page properties must be retrieved using the page properties endpoint. (c)
         after retrieving a Page object you can retrieve its properties
@@ -281,12 +336,12 @@ class Element(object):
         logger.warning("You must provide a Page to retrieve properties")
 
     def db_query(
-            self,
-            id_: Optional[str] = None,
-            limit: int = 0,
-            filter_: Optional[Filter] = None,
-            sorts: Optional[Sort] = None,
-            **kwargs,
+        self,
+        id_: Optional[str] = None,
+        limit: int = 0,
+        filter_: Optional[Filter] = None,
+        sorts: Optional[Sort] = None,
+        **kwargs,
     ) -> Optional[Element]:
         if self.name != "databases":
             logger.warning("Only `databases` can be queried")
@@ -296,8 +351,14 @@ class Element(object):
         if self.obj:
             id_ = self.obj.id
         r = self.api.session.method(
-            method="post", path=self.name, id_=id_, after_path="query",
-            data={}, limit=limit, filter_=filter_, sorts=sorts
+            method="post",
+            path=self.name,
+            id_=id_,
+            after_path="query",
+            data={},
+            limit=limit,
+            filter_=filter_,
+            sorts=sorts,
         )
         if r["object"] != "list":
             return None
@@ -338,7 +399,9 @@ class Element(object):
             elif kwargs.get("descending"):
                 sort = Sort(property_name=kwargs["descending"], direction="descending")
             if isinstance(title, str):
-                filter_obj = Filter(property_name="title", value=title, property_type="title", **kwargs)
+                filter_obj = Filter(
+                    property_name="title", value=title, property_type="title", **kwargs
+                )
             else:
                 filter_obj = Filter(**kwargs)
             return self.db_query(filter_=filter_obj, sorts=sort, **kwargs)
@@ -346,12 +409,12 @@ class Element(object):
         return None
 
     def db_create(
-            self,
-            database_obj: Optional[Database] = None,
-            parent: Optional[LinkTo] = None,
-            properties: Optional[Dict[str, Property]] = None,
-            title: Optional[Union[str, RichTextArray]] = None,
-            description: Optional[Union[str, RichTextArray]] = None,
+        self,
+        database_obj: Optional[Database] = None,
+        parent: Optional[LinkTo] = None,
+        properties: Optional[Dict[str, Property]] = None,
+        title: Optional[Union[str, RichTextArray]] = None,
+        description: Optional[Union[str, RichTextArray]] = None,
     ) -> Optional[Element]:
         """
         :param database_obj:  you can provide `Database` object or -
@@ -381,14 +444,23 @@ class Element(object):
         else:
             if isinstance(title, str):
                 title = RichTextArray.create(title)
-            db = Database.create(parent=parent, properties=properties, title=title, description=description)
-        created_db = self.api.session.method(method="post", path=self.name, data=db.get())
+            db = Database.create(
+                parent=parent,
+                properties=properties,
+                title=title,
+                description=description,
+            )
+        created_db = self.api.session.method(
+            method="post", path=self.name, data=db.get()
+        )
         self.obj = Database(**created_db)
         return self
 
     def db_update(
-            self, id_: Optional[str] = None, title: Optional[Union[str, RichTextArray]] = None,
-            properties: Optional[Dict[str, Property]] = None
+        self,
+        id_: Optional[str] = None,
+        title: Optional[Union[str, RichTextArray]] = None,
+        properties: Optional[Dict[str, Property]] = None,
     ) -> Optional[Element]:
         """
         :param id_:         provide id of database if `self.obj` is empty
@@ -416,18 +488,22 @@ class Element(object):
                 title = RichTextArray.create(title)
             patch["title"] = title.get()
         if properties:
-            patch["properties"] = {name: value.get() for name, value in properties.items()}
-        updated_db = self.api.session.method(method="patch", path=self.name, id_=id_, data=patch)
+            patch["properties"] = {
+                name: value.get() for name, value in properties.items()
+            }
+        updated_db = self.api.session.method(
+            method="patch", path=self.name, id_=id_, data=patch
+        )
         self.obj = Database(**updated_db)
         return self
 
     def page_create(
-            self,
-            page_obj: Optional[Page] = None,
-            parent: Optional[LinkTo] = None,
-            properties: Optional[Dict[str, PropertyValue]] = None,
-            title: Optional[Union[str, RichTextArray]] = None,
-            children: Optional[BlockArray, List[Block]] = None,
+        self,
+        page_obj: Optional[Page] = None,
+        parent: Optional[LinkTo] = None,
+        properties: Optional[Dict[str, PropertyValue]] = None,
+        title: Optional[Union[str, RichTextArray]] = None,
+        children: Union[BlockArray, List[Block], None] = None,
     ) -> Optional[Element]:
         """
         :param page_obj:      you can provide `Page` object or -
@@ -457,14 +533,21 @@ class Element(object):
         else:
             if children and not isinstance(children, BlockArray):
                 children = BlockArray(children, create=True)
-            page = Page.create(parent=parent, properties=properties, title=title, children=children)
-        created_page = self.api.session.method(method="post", path=self.name, data=page.get())
+            page = Page.create(
+                parent=parent, properties=properties, title=title, children=children
+            )
+        created_page = self.api.session.method(
+            method="post", path=self.name, data=page.get()
+        )
         self.obj = Page(**created_page)
         return self
 
     def page_update(
-            self, id_: Optional[str] = None, properties: Optional[Dict[str, PropertyValue]] = None,
-            title: Optional[Union[str, RichTextArray]] = None, archived: bool = False
+        self,
+        id_: Optional[str] = None,
+        properties: Optional[Dict[str, PropertyValue]] = None,
+        title: Optional[Union[str, RichTextArray]] = None,
+        archived: bool = False,
     ) -> Optional[Element]:
         """
         :param id_:         ID of page
@@ -488,13 +571,18 @@ class Element(object):
             patch["properties"]["title"] = PropertyValue.create("title", title).get()
         # if archived:
         patch["archived"] = archived
-        updated_page = self.api.session.method(method="patch", path=self.name, id_=id_, data=patch)
+        updated_page = self.api.session.method(
+            method="patch", path=self.name, id_=id_, data=patch
+        )
         self.obj = Page(**updated_page)
         return self
 
     def block_update(
-            self, id_: Optional[str] = None, block_obj: Optional[Block] = None,
-            new_text: Optional[str] = None, archived: bool = False
+        self,
+        id_: Optional[str] = None,
+        block_obj: Optional[Block] = None,
+        new_text: Optional[str] = None,
+        archived: bool = False,
     ) -> Optional[Element]:
         """
         Updates text of Block.
@@ -533,13 +621,17 @@ class Element(object):
             self.obj.text = new_text
         patch = {"archived": archived}
         patch.update(self.obj.get())
-        updated_block = self.api.session.method(method="patch", path=self.name, id_=id_, data=patch)
+        updated_block = self.api.session.method(
+            method="patch", path=self.name, id_=id_, data=patch
+        )
         self.obj = Block(**updated_block)
         return self
 
     def block_append(
-            self, id_: Optional[str] = None, block: Optional[Block] = None,
-            blocks: Optional[BlockArray, List[Block]] = None
+        self,
+        id_: Optional[str] = None,
+        block: Optional[Block] = None,
+        blocks: Union[BlockArray, List[Block], None] = None,
     ) -> Optional[Element]:
         """
         Append block or blocks children
@@ -572,7 +664,9 @@ class Element(object):
         new_blocks = self.api.session.method(
             method="patch", path="blocks", id_=id_, after_path="children", data=data
         )
-        return Element(api=self.api, name="blocks", obj=BlockArray(new_blocks["results"]))
+        return Element(
+            api=self.api, name="blocks", obj=BlockArray(new_blocks["results"])
+        )
 
     def get_myself(self) -> Element:
         """

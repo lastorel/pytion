@@ -9,6 +9,7 @@ from pytion.envs import NOTION_URL
 
 # I wanna use pydantic, but API provide variable names of property
 
+
 class RichText(object):
     def __init__(self, **kwargs) -> None:
         self.plain_text: str = kwargs.get("plain_text")
@@ -25,7 +26,11 @@ class RichText(object):
                 self.plain_text = str(self.data)
                 self.simple = LinkTo(from_object=self.data).link
             elif subtype == "page":
-                sub_id = kwargs[self.type][subtype].get("id") if kwargs[self.type].get(subtype) else ""
+                sub_id = (
+                    kwargs[self.type][subtype].get("id")
+                    if kwargs[self.type].get(subtype)
+                    else ""
+                )
                 self.data = LinkTo.create(page=sub_id)
                 if self.plain_text == "Untitled":
                     self.plain_text = repr(self.data)
@@ -33,7 +38,11 @@ class RichText(object):
                     self.plain_text = "LinkTo(" + self.plain_text + ")"
                 self.simple = self.data.link
             elif subtype == "database":
-                sub_id = kwargs[self.type][subtype].get("id") if kwargs[self.type].get(subtype) else ""
+                sub_id = (
+                    kwargs[self.type][subtype].get("id")
+                    if kwargs[self.type].get(subtype)
+                    else ""
+                )
                 self.data = LinkTo.create(database_id=sub_id)
                 if self.plain_text == "Untitled":
                     self.plain_text = repr(self.data)
@@ -42,8 +51,10 @@ class RichText(object):
                 self.simple = self.data.link
             elif subtype == "date":
                 self.data = {
-                    "start": Model.format_iso_time(kwargs[self.type][subtype].get("start")),
-                    "end": Model.format_iso_time(kwargs[self.type][subtype].get("end"))
+                    "start": Model.format_iso_time(
+                        kwargs[self.type][subtype].get("start")
+                    ),
+                    "end": Model.format_iso_time(kwargs[self.type][subtype].get("end")),
                 }
                 self.simple = str(self.plain_text)
             elif subtype == "link_preview":
@@ -65,8 +76,12 @@ class RichText(object):
 
     def _create_default_annotations(self):
         self.annotations = {
-            "bold": False, "italic": False, "strikethrough": False,
-            "underline": False, "code": False, "color": "default"
+            "bold": False,
+            "italic": False,
+            "strikethrough": False,
+            "underline": False,
+            "code": False,
+            "color": "default",
         }
 
     # def __len__(self):
@@ -134,6 +149,7 @@ class User(object):
     """
     The User object represents a user in a Notion workspace.
     """
+
     path = "users"
 
     def __init__(self, **kwargs) -> None:
@@ -181,10 +197,7 @@ class User(object):
         return f"User({self})"
 
     def get(self) -> Dict[str, str]:
-        return {
-            "object": self.object,
-            "id": self.id
-        }
+        return {"object": self.object, "id": self.id}
 
     @classmethod
     def create(cls, id: str):
@@ -207,8 +220,12 @@ class Model(object):
         self.object = kwargs.get("object")
         self.created_time = self.format_iso_time(kwargs.get("created_time"))
         self.last_edited_time = self.format_iso_time(kwargs.get("last_edited_time"))
-        self.created_by = User(**kwargs["created_by"]) if kwargs.get("created_by") else None
-        self.last_edited_by = User(**kwargs["last_edited_by"]) if kwargs.get("last_edited_by") else None
+        self.created_by = (
+            User(**kwargs["created_by"]) if kwargs.get("created_by") else None
+        )
+        self.last_edited_by = (
+            User(**kwargs["last_edited_by"]) if kwargs.get("last_edited_by") else None
+        )
         self.raw = kwargs
 
     @classmethod
@@ -230,12 +247,18 @@ class Property(object):
         if self.type == "relation":
             if isinstance(data[self.type], dict):
                 self.subtype = data[self.type].get("type")
-                self.relation = LinkTo.create(database_id=data[self.type].get("database_id"))
+                self.relation = LinkTo.create(
+                    database_id=data[self.type].get("database_id")
+                )
                 if self.subtype == "single_property":
                     pass
                 elif self.subtype == "dual_property":
-                    self.relation_property_id = data[self.type][self.subtype].get("synced_property_id")
-                    self.relation_property_name = data[self.type][self.subtype].get("synced_property_name")
+                    self.relation_property_id = data[self.type][self.subtype].get(
+                        "synced_property_id"
+                    )
+                    self.relation_property_name = data[self.type][self.subtype].get(
+                        "synced_property_name"
+                    )
 
         if self.type == "status":
             if isinstance(data[self.type], dict):
@@ -288,8 +311,16 @@ class Property(object):
         Property.create(type_="relation", dual_property="v111c132c12c1242341c41c")
         """
         if type_ == "relation":
-            subtype = next(kwarg for kwarg in kwargs if kwarg in ("single_property", "dual_property"))
-            kwargs["relation"] = {"type": subtype, subtype: {}, "database_id": kwargs[subtype]}
+            subtype = next(
+                kwarg
+                for kwarg in kwargs
+                if kwarg in ("single_property", "dual_property")
+            )
+            kwargs["relation"] = {
+                "type": subtype,
+                subtype: {},
+                "database_id": kwargs[subtype],
+            }
         elif type_ == "status":
             kwargs["status"] = {}
         return cls({"type": type_, **kwargs})
@@ -303,7 +334,9 @@ class PropertyValue(Property):
         if data.get("object") and data["object"] == "list":
             if data.get("results"):
                 self.type = data["results"][0].get("type")
-                data[self.type] = [sub_dict.get(sub_dict.get("type")) for sub_dict in data["results"]]
+                data[self.type] = [
+                    sub_dict.get(sub_dict.get("type")) for sub_dict in data["results"]
+                ]
 
         self.name = name
         self.value = None
@@ -317,7 +350,7 @@ class PropertyValue(Property):
                 self.value = RichTextArray.create(data[self.type])
 
         if self.type == "number":
-            self.value: Optional[int, float] = data["number"]
+            self.value: Union[int, float, None] = data["number"]
 
         if self.type == "select":
             if data["select"] and isinstance(data["select"], dict):
@@ -328,7 +361,10 @@ class PropertyValue(Property):
                 self.value = None
 
         if self.type == "multi_select":
-            self.value: List[str] = [(v.get("name") if isinstance(v, dict) else v) for v in data["multi_select"]]
+            self.value: List[str] = [
+                (v.get("name") if isinstance(v, dict) else v)
+                for v in data["multi_select"]
+            ]
 
         if self.type == "checkbox":
             self.value: bool = data["checkbox"]
@@ -340,8 +376,12 @@ class PropertyValue(Property):
                 self.end = None
             elif data["date"]:
                 self.value: Optional[str] = data["date"].get("start")
-                self.start: Optional[datetime] = Model.format_iso_time(data["date"].get("start"))
-                self.end: Optional[datetime] = Model.format_iso_time(data["date"].get("end"))
+                self.start: Optional[datetime] = Model.format_iso_time(
+                    data["date"].get("start")
+                )
+                self.end: Optional[datetime] = Model.format_iso_time(
+                    data["date"].get("end")
+                )
             else:
                 self.value = None
                 self.start = None
@@ -355,8 +395,12 @@ class PropertyValue(Property):
             if formula_type == "date":
                 if data["formula"]["date"]:
                     self.value: str = data["formula"]["date"].get("start")
-                    self.start: Optional[datetime] = Model.format_iso_time(data["formula"]["date"].get("start"))
-                    self.end: Optional[datetime] = Model.format_iso_time(data["formula"]["date"].get("end"))
+                    self.start: Optional[datetime] = Model.format_iso_time(
+                        data["formula"]["date"].get("start")
+                    )
+                    self.end: Optional[datetime] = Model.format_iso_time(
+                        data["formula"]["date"].get("end")
+                    )
                 else:
                     self.value = None
                     self.start = None
@@ -371,17 +415,26 @@ class PropertyValue(Property):
             self.value = User(**data.get(self.type))
 
         if self.type == "people":
-            self.value = [user if isinstance(user, User) else User(**user) for user in data[self.type]]
+            self.value = [
+                user if isinstance(user, User) else User(**user)
+                for user in data[self.type]
+            ]
 
         if self.type == "relation":
             self.value: List[LinkTo] = [
-                LinkTo.create(page_id=item.get("id")) if not isinstance(item, LinkTo) else item
+                LinkTo.create(page_id=item.get("id"))
+                if not isinstance(item, LinkTo)
+                else item
                 for item in data[self.type]
             ]
             self.has_more = data["has_more"] if "has_more" in data else False
 
         if self.type == "status":
-            self.value = data[self.type].get("name") if isinstance(data[self.type], dict) else data[self.type]
+            self.value = (
+                data[self.type].get("name")
+                if isinstance(data[self.type], dict)
+                else data[self.type]
+            )
 
         if self.type == "rollup":
             rollup_type = data["rollup"]["type"]
@@ -391,16 +444,23 @@ class PropertyValue(Property):
                 elif len(data["rollup"]["array"]) == 1:
                     self.value = PropertyValue(data["rollup"]["array"][0], rollup_type)
                 else:
-                    self.value = [PropertyValue(element, rollup_type).value for element in data["rollup"]["array"]]
+                    self.value = [
+                        PropertyValue(element, rollup_type).value
+                        for element in data["rollup"]["array"]
+                    ]
 
             elif rollup_type == "number":
-                self.value: Optional[int, float] = data["rollup"]["number"]
+                self.value: Union[int, float, None] = data["rollup"]["number"]
 
             elif rollup_type == "date":
                 if data["rollup"]["date"]:
                     self.value: Optional[str] = data["rollup"]["date"].get("start")
-                    self.start: Optional[datetime] = Model.format_iso_time(data["rollup"]["date"].get("start"))
-                    self.end: Optional[datetime] = Model.format_iso_time(data["rollup"]["date"].get("end"))
+                    self.start: Optional[datetime] = Model.format_iso_time(
+                        data["rollup"]["date"].get("start")
+                    )
+                    self.end: Optional[datetime] = Model.format_iso_time(
+                        data["rollup"]["date"].get("end")
+                    )
                 else:
                     self.value = None
                     self.start = None
@@ -433,7 +493,13 @@ class PropertyValue(Property):
 
         # empty values
         elif not self.value:
-            if self.type in ["multi_select", "relation", "rich_text", "people", "files"]:
+            if self.type in [
+                "multi_select",
+                "relation",
+                "rich_text",
+                "people",
+                "files",
+            ]:
                 return {self.type: []}
             return {self.type: None}
 
@@ -457,11 +523,19 @@ class PropertyValue(Property):
         elif self.type == "date" and hasattr(self, "start") and hasattr(self, "end"):
             with_time = True if self.start.hour or self.start.minute else False
             if self.start:
-                start = self.start.astimezone().isoformat() if with_time else str(self.start.date())
+                start = (
+                    self.start.astimezone().isoformat()
+                    if with_time
+                    else str(self.start.date())
+                )
             else:
                 start = None
             if self.end:
-                end = self.end.astimezone().isoformat() if with_time else str(self.end.date())
+                end = (
+                    self.end.astimezone().isoformat()
+                    if with_time
+                    else str(self.end.date())
+                )
             else:
                 end = None
             return {self.type: {"start": start, "end": end}}
@@ -481,7 +555,12 @@ class PropertyValue(Property):
         # unsupported types:
         elif self.type in ["files"]:
             return {self.type: []}
-        elif self.type in ["created_time", "last_edited_by", "last_edited_time", "created_by"]:
+        elif self.type in [
+            "created_time",
+            "last_edited_by",
+            "last_edited_time",
+            "created_by",
+        ]:
             return None
         elif self.type in ["formula", "rollup"]:
             return {self.type: {}}
@@ -524,15 +603,20 @@ class Database(Model):
         super().__init__(**kwargs)
         self.cover: Optional[Dict] = kwargs.get("cover")
         self.icon: Optional[Dict] = kwargs.get("icon")
-        self.title = (kwargs.get("title")
-                      if isinstance(kwargs["title"], RichTextArray) or not kwargs.get("title")
-                      else RichTextArray(kwargs["title"])
-                      )
+        self.title = (
+            kwargs.get("title")
+            if isinstance(kwargs["title"], RichTextArray) or not kwargs.get("title")
+            else RichTextArray(kwargs["title"])
+        )
         self.properties = {
             name: (value if isinstance(value, Property) else Property(value))
             for name, value in kwargs["properties"].items()
         }
-        self.parent = kwargs["parent"] if isinstance(kwargs.get("parent"), LinkTo) else LinkTo(**kwargs["parent"])
+        self.parent = (
+            kwargs["parent"]
+            if isinstance(kwargs.get("parent"), LinkTo)
+            else LinkTo(**kwargs["parent"])
+        )
         self.url: str = kwargs.get("url")
         self.description = None
         if "description" in kwargs and kwargs["description"]:
@@ -553,7 +637,9 @@ class Database(Model):
     def get(self) -> Dict[str, Dict]:
         new_dict = {
             "parent": self.parent.get(),
-            "properties": {name: value.get() for name, value in self.properties.items()}
+            "properties": {
+                name: value.get() for name, value in self.properties.items()
+            },
         }
         if isinstance(self.title, RichTextArray):
             new_dict["title"] = self.title.get()
@@ -562,7 +648,13 @@ class Database(Model):
         return new_dict
 
     @classmethod
-    def create(cls, parent: LinkTo, properties: Dict[str, Property], title: Optional[RichTextArray] = None, **kwargs):
+    def create(
+        cls,
+        parent: LinkTo,
+        properties: Dict[str, Property],
+        title: Optional[RichTextArray] = None,
+        **kwargs,
+    ):
         return cls(parent=parent, properties=properties, title=title, **kwargs)
 
 
@@ -583,12 +675,22 @@ class Page(Model):
         super().__init__(**kwargs)
         self.cover: Optional[Dict] = kwargs.get("cover")
         self.icon: Optional[Dict] = kwargs.get("icon")
-        self.parent = kwargs["parent"] if isinstance(kwargs.get("parent"), LinkTo) else LinkTo(**kwargs["parent"])
+        self.parent = (
+            kwargs["parent"]
+            if isinstance(kwargs.get("parent"), LinkTo)
+            else LinkTo(**kwargs["parent"])
+        )
         self.archived: bool = kwargs.get("archived")
         self.url: str = kwargs.get("url")
-        self.children = kwargs["children"] if "children" in kwargs else LinkTo(block=self)
+        self.children = (
+            kwargs["children"] if "children" in kwargs else LinkTo(block=self)
+        )
         self.properties = {
-            name: (PropertyValue(data, name) if not isinstance(data, PropertyValue) else data)
+            name: (
+                PropertyValue(data, name)
+                if not isinstance(data, PropertyValue)
+                else data
+            )
             for name, data in kwargs["properties"].items()
         }
         for p in self.properties.values():
@@ -617,8 +719,12 @@ class Page(Model):
 
     @classmethod
     def create(
-            cls, parent: LinkTo, properties: Optional[Dict[str, PropertyValue]] = None,
-            title: Optional[RichTextArray, str] = None, children: Optional[BlockArray] = None, **kwargs
+        cls,
+        parent: LinkTo,
+        properties: Optional[Dict[str, PropertyValue]] = None,
+        title: Union[RichTextArray, str, None] = None,
+        children: Optional[BlockArray] = None,
+        **kwargs,
     ):
         if not properties:
             properties = {}
@@ -645,7 +751,9 @@ class Block(Model):
         self.archived: bool = kwargs.get("archived")
         self.children = LinkTo(block=self)
         self._level = kwargs["level"] if kwargs.get("level") else 0
-        self.create_mode: bool = kwargs["create_mode"] if "create_mode" in kwargs else False
+        self.create_mode: bool = (
+            kwargs["create_mode"] if "create_mode" in kwargs else False
+        )
         self.parent = None
         self._plain_text = ""
 
@@ -662,7 +770,11 @@ class Block(Model):
             if "is_toggleable" in kwargs:
                 self.is_toggleable = kwargs["is_toggleable"]
             return
-        self.parent = kwargs["parent"] if isinstance(kwargs.get("parent"), LinkTo) else LinkTo(**kwargs["parent"])
+        self.parent = (
+            kwargs["parent"]
+            if isinstance(kwargs.get("parent"), LinkTo)
+            else LinkTo(**kwargs["parent"])
+        )
 
         if self.type == "paragraph":
             self.text = RichTextArray(kwargs[self.type].get("rich_text"))
@@ -708,7 +820,11 @@ class Block(Model):
         elif self.type == "code":
             r_text = RichTextArray(kwargs[self.type].get("rich_text"))
             self.language: str = kwargs[self.type].get("language")
-            prefix = RichTextArray.create(f"```{self.language}\n") if self.language else RichTextArray.create("```\n")
+            prefix = (
+                RichTextArray.create(f"```{self.language}\n")
+                if self.language
+                else RichTextArray.create("```\n")
+            )
             self.text = prefix + r_text + "\n```"
             self._plain_text = r_text.simple
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
@@ -740,25 +856,27 @@ class Block(Model):
             text = kwargs[self.type].get("url")
             self._plain_text = str(text)
             if self.caption:
-                self.text = f'[{self.caption}]({text})'
+                self.text = f"[{self.caption}]({text})"
             else:
-                self.text = f'<{text}>' if text else "*Empty embed*"
+                self.text = f"<{text}>" if text else "*Empty embed*"
 
         elif self.type == "image":
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
             subtype = kwargs[self.type].get("type")
             if subtype == "file":
                 # The file S3 URL will be valid for 1 hour
-                self.expiry_time = Model.format_iso_time(kwargs[self.type][subtype].get("expiry_time"))
+                self.expiry_time = Model.format_iso_time(
+                    kwargs[self.type][subtype].get("expiry_time")
+                )
             else:
                 self.expiry_time = None
             if subtype in ("file", "external"):
                 text = kwargs[self.type][subtype].get("url")
                 self._plain_text = str(text)
                 if self.caption:
-                    self.text = f'[{self.caption}]({text})'
+                    self.text = f"[{self.caption}]({text})"
                 else:
-                    self.text = f'<{text}>'
+                    self.text = f"<{text}>"
             else:
                 self.text = "*Unknown image type*"
                 self._plain_text = "None"
@@ -767,16 +885,18 @@ class Block(Model):
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
             subtype = kwargs[self.type].get("type")
             if subtype == "file":
-                self.expiry_time = Model.format_iso_time(kwargs[self.type][subtype].get("expiry_time"))
+                self.expiry_time = Model.format_iso_time(
+                    kwargs[self.type][subtype].get("expiry_time")
+                )
             else:
                 self.expiry_time = None
             if subtype in ("file", "external"):
                 text = kwargs[self.type][subtype].get("url")
                 self._plain_text = str(text)
                 if self.caption:
-                    self.text = f'[{self.caption}]({text})'
+                    self.text = f"[{self.caption}]({text})"
                 else:
-                    self.text = f'<{text}>'
+                    self.text = f"<{text}>"
             else:
                 self.text = "*Unknown video type*"
                 self._plain_text = "None"
@@ -785,16 +905,18 @@ class Block(Model):
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
             subtype = kwargs[self.type].get("type")
             if subtype == "file":
-                self.expiry_time = Model.format_iso_time(kwargs[self.type][subtype].get("expiry_time"))
+                self.expiry_time = Model.format_iso_time(
+                    kwargs[self.type][subtype].get("expiry_time")
+                )
             else:
                 self.expiry_time = None
             if subtype in ("file", "external"):
                 text = kwargs[self.type][subtype].get("url")
                 self._plain_text = str(text)
                 if self.caption:
-                    self.text = f'[{self.caption}]({text})'
+                    self.text = f"[{self.caption}]({text})"
                 else:
-                    self.text = f'<{text}>'
+                    self.text = f"<{text}>"
             else:
                 self.text = "*Unknown file type*"
                 self._plain_text = "None"
@@ -803,16 +925,18 @@ class Block(Model):
             self.caption = RichTextArray(kwargs[self.type].get("caption"))
             subtype = kwargs[self.type].get("type")
             if subtype == "file":
-                self.expiry_time = Model.format_iso_time(kwargs[self.type][subtype].get("expiry_time"))
+                self.expiry_time = Model.format_iso_time(
+                    kwargs[self.type][subtype].get("expiry_time")
+                )
             else:
                 self.expiry_time = None
             if subtype in ("file", "external"):
                 text = kwargs[self.type][subtype].get("url")
                 self._plain_text = str(text)
                 if self.caption:
-                    self.text = f'[{self.caption}]({text})'
+                    self.text = f"[{self.caption}]({text})"
                 else:
-                    self.text = f'<{text}>'
+                    self.text = f"<{text}>"
             else:
                 self.text = "*Unknown pdf type*"
                 self._plain_text = "None"
@@ -826,14 +950,14 @@ class Block(Model):
             text = kwargs[self.type].get("url")
             self._plain_text = str(text)
             if self.caption:
-                self.text = f'[{self.caption}]({text})'
+                self.text = f"[{self.caption}]({text})"
             else:
-                self.text = f'<{text}>' if text else "*Empty bookmark*"
+                self.text = f"<{text}>" if text else "*Empty bookmark*"
 
         elif self.type == "link_preview":
             text = kwargs[self.type].get("url")
             self._plain_text = str(text)
-            self.text = f'<{text}>'
+            self.text = f"<{text}>"
 
         elif self.type == "link_to_page":
             self.link = LinkTo(**kwargs[self.type])
@@ -873,7 +997,7 @@ class Block(Model):
             self.text = RichTextArray.create("| ")
             for cell in cells:
                 text_cell = RichTextArray(cell)
-                self._plain_text += f"\"{text_cell}\","
+                self._plain_text += f'"{text_cell}",'
                 self.text += text_cell + " | "
             self._plain_text = self._plain_text.strip(",")
 
@@ -893,11 +1017,25 @@ class Block(Model):
 
     def get(self, with_object_type: bool = False):
         if self.type in [
-            "paragraph", "quote", "heading_1", "heading_2", "heading_3", "to_do",
-            "bulleted_list_item", "numbered_list_item", "toggle", "callout", "code", "child_database"
+            "paragraph",
+            "quote",
+            "heading_1",
+            "heading_2",
+            "heading_3",
+            "to_do",
+            "bulleted_list_item",
+            "numbered_list_item",
+            "toggle",
+            "callout",
+            "code",
+            "child_database",
         ]:
 
-            text = RichTextArray.create(self.text) if isinstance(self.text, str) else self.text
+            text = (
+                RichTextArray.create(self.text)
+                if isinstance(self.text, str)
+                else self.text
+            )
 
             # base content
             new_dict = {self.type: {"rich_text": text.get()}}
@@ -908,7 +1046,9 @@ class Block(Model):
 
             # code type attrs
             elif self.type == "code":
-                new_dict[self.type]["language"] = getattr(self, "language", "plain text")
+                new_dict[self.type]["language"] = getattr(
+                    self, "language", "plain text"
+                )
                 if hasattr(self, "caption"):
                     new_dict[self.type]["caption"] = self.caption.get()
 
@@ -918,7 +1058,9 @@ class Block(Model):
 
             # heading_X types attrs
             elif "heading" in self.type:
-                if hasattr(self, "is_toggleable") and isinstance(self.is_toggleable, bool):
+                if hasattr(self, "is_toggleable") and isinstance(
+                    self.is_toggleable, bool
+                ):
                     new_dict[self.type]["is_toggleable"] = self.is_toggleable
                 else:
                     new_dict[self.type]["is_toggleable"] = False
@@ -1025,7 +1167,10 @@ class LinkTo(object):
     """
 
     def __init__(
-            self, block: Optional[Model] = None, from_object: Optional[Block, Page, Database] = None, **kwargs
+        self,
+        block: Optional[Model] = None,
+        from_object: Union[Block, Page, Database, None] = None,
+        **kwargs,
     ):
         """
         Creates LinkTo object from API dict
@@ -1053,7 +1198,9 @@ class LinkTo(object):
                 self.type = "user_id"
         else:
             self.type: str = kwargs.get("type")
-            self.id: str = kwargs.get(self.type) if kwargs.get(self.type) else kwargs.get("id")
+            self.id: str = (
+                kwargs.get(self.type) if kwargs.get(self.type) else kwargs.get("id")
+            )
             if self.type == "workspace":
                 self.id = ""
             self.after_path = ""
