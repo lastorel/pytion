@@ -317,7 +317,7 @@ class PropertyValue(Property):
                 self.value = RichTextArray.create(data[self.type])
 
         if self.type == "number":
-            self.value: Optional[int, float] = data["number"]
+            self.value: Union[int, float, None] = data["number"]
 
         if self.type == "select":
             if data["select"] and isinstance(data["select"], dict):
@@ -394,7 +394,7 @@ class PropertyValue(Property):
                     self.value = [PropertyValue(element, rollup_type).value for element in data["rollup"]["array"]]
 
             elif rollup_type == "number":
-                self.value: Optional[int, float] = data["rollup"]["number"]
+                self.value: Union[int, float, None] = data["rollup"]["number"]
 
             elif rollup_type == "date":
                 if data["rollup"]["date"]:
@@ -618,7 +618,7 @@ class Page(Model):
     @classmethod
     def create(
             cls, parent: LinkTo, properties: Optional[Dict[str, PropertyValue]] = None,
-            title: Optional[RichTextArray, str] = None, children: Optional[BlockArray] = None, **kwargs
+            title: Union[RichTextArray, str, None] = None, children: Optional[BlockArray] = None, **kwargs
     ):
         if not properties:
             properties = {}
@@ -1025,7 +1025,7 @@ class LinkTo(object):
     """
 
     def __init__(
-            self, block: Optional[Model] = None, from_object: Optional[Block, Page, Database] = None, **kwargs
+            self, block: Optional[Model] = None, from_object: Union[Block, Page, Database, None] = None, **kwargs
     ):
         """
         Creates LinkTo object from API dict

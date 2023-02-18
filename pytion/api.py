@@ -427,7 +427,7 @@ class Element(object):
             parent: Optional[LinkTo] = None,
             properties: Optional[Dict[str, PropertyValue]] = None,
             title: Optional[Union[str, RichTextArray]] = None,
-            children: Optional[BlockArray, List[Block]] = None,
+            children: Union[BlockArray, List[Block], None] = None,
     ) -> Optional[Element]:
         """
         :param page_obj:      you can provide `Page` object or -
@@ -539,7 +539,7 @@ class Element(object):
 
     def block_append(
             self, id_: Optional[str] = None, block: Optional[Block] = None,
-            blocks: Optional[BlockArray, List[Block]] = None
+            blocks: Union[BlockArray, List[Block], None] = None
     ) -> Optional[Element]:
         """
         Append block or blocks children
