@@ -32,6 +32,8 @@ See [Change Log](./CHANGELOG.md)
       2. [Block deleting](#block-deleting)
    4. [Database operations](#database-operations)
       1. [Retrieving](#retrieving)
+      2. [Appending (creating a Page)](#appending-creating-a-page)
+      3. [Property Values](#property-values)
 4. [Logging](#logging)
 
 # Quick start
@@ -289,6 +291,8 @@ There are also useful **internal** classes:
 > [\*\*\*] - Every Base model like Page already has mandatory attributes created/last_edited returned by API  
 > [\*\*\*\*] - Status type is not configurable. API doesn't support NEW options added via Property modify or updating a Page
 
+More details and examples can be found in Database [section](#property-values)
+
 
 ## Supported block types
 
@@ -450,6 +454,96 @@ If you need to change a Page or something else, you can follow these steps:
 page = no.pages.from_object(pages.obj[14])  # choosed page from the PageArray
 # 2. call the desired API method on this page
 page.page_update(archived=True)  # delete Page example
+```
+
+### Appending (creating a Page)
+
+There is a way to create a row into database. The same method is used to create any Page.
+The difference is in only in `parent` argument which can be the Page or the Database.
+
+```python
+from pytion.models import LinkTo
+
+# choose the parent target
+# it can be the database
+parent = LinkTo.create(database_id="043cb52491a44b80a5e5006237a4278f")
+# or the page
+parent2 = LinkTo.create(page_id="043cb52491a44b80a5e5006237a4278f")
+
+# if you need to set Properties
+from pytion.models import PropertyValue
+props = {
+            "Tags": PropertyValue.create(type_="multi_select", value=["tag1", "tag2"]),
+            "done": PropertyValue.create("checkbox", True),
+            "AnotherPropertyNAME": PropertyValue.create("date", datetime.now()),
+        }
+
+# create the Page
+page = no.pages.page_create(parent=parent, title="Page 2")  # without properties (will be empty)
+# or
+page2 = no.pages.page_create(parent=parent, properties=props, title="Page 2")  # with properties
+```
+
+### Property Values
+
+Pytion Properties support table is described [above](#supported-property-types)
+
+There are Properties that are used in Database operations and PropertyValues that are used in Page operations.
+
+It's necessary to choose the type (`type_` arg) and value (`value`) of property.
+The table shows the mapping between Property type and value (python) type.
+
+The `type_` must correspond to your database schema in Notion.
+
+```python
+from datetime import datetime
+from pytion.models import PropertyValue, LinkTo, RichTextArray, User
+
+# + relation type:
+pv = PropertyValue.create("relation", value=[LinkTo.create(page_id="04262843082a478d97f741948a32613b")])
+# + people type:
+pv = PropertyValue.create(type_="people", value=[User.create('1d393ffb5efd4d09adfc2cb6738e4812')])
+# + date type:
+pv = PropertyValue.create(type_="date", value=datetime.now())
+pv = PropertyValue.create(type_="date", date={"start": str(datetime(2022, 2, 1, 5)), "end": str(datetime.now())})
+# + rich_text (text or title field)
+pv = PropertyValue.create(type_="rich_text", value="Something Interesting")
+pv = PropertyValue.create("rich_text", value=RichTextArray.create("Something Interesting"))
+# + nubmer
+pv = PropertyValue.create(type_="number", value=156.2)
+# + status
+pv = PropertyValue.create("status", value="Done")
+
+# update needed property values
+new_props = {
+    "Tags": PropertyValue.create("multi_select", ["tag2"]),
+    "done": PropertyValue.create("checkbox", False),
+    "when": PropertyValue.create("date", datetime.now()),
+}
+page = page_for_updates.page_update(properties=new_props)
+page = no.pages.page_update(page_for_updates_id, properties=new_props)  # the same
+
+# rename (edit title property)
+page = page_for_updates.page_update(title=new_name)
+```
+
+Pytion also provides the ways to change database schema - create/update/rename/delete properties:
+
+```python
+from pytion.models import Property
+
+# rename property
+properties = {"Name": Property.create(type_="title", name="Subject")}
+database = database_for_updates.db_update(properties=properties)
+database = no.databases.db_update(database_for_updates_id, properties=properties)  # the same
+# change property type
+properties = {"Tags": Property.create("select")}
+database = database_for_updates.db_update(properties=properties)
+# delete property from database
+properties = {"Old property name": Property.create(None)}
+database = database_for_updates.db_update(properties=properties)
+# rename database
+database = database_for_updates.db_update(title="Refactoring")
 ```
 
 # Logging
