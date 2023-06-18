@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.3.4
+
+- [#66](https://github.com/lastorel/pytion/issues/66): full support of `rollup` type properties
+- [#55](https://github.com/lastorel/pytion/pull/55): `Optional` typing fix
+
 ## v1.3.3
 
 - [#45](https://github.com/lastorel/pytion/issues/45): `has_more` property for relation PropertyValue

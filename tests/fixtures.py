@@ -30,3 +30,8 @@ def page_for_pages(no):
 def page_for_updates(no):
     page = no.pages.get("36223246a20e42df8f9b354ed1f11d75")
     return page
+
+
+@pytest.fixture(scope="session")
+def database_for_pages(no):
+    return no.databases.get("35f50aa293964b0d93e09338bc980e2e")

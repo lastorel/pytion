@@ -54,6 +54,89 @@ class TestProperty:
         assert isinstance(p.groups, list)
         assert bool(p_dict["status"]) is False
 
+    def test_create__rollup(self):
+        p = Property.create("rollup", function="average", relation_property_id="GHpm", rollup_property_id="mvpx")
+        p_dict = p.get()
+        assert p.id is None
+        assert p.type == "rollup"
+        assert p.to_delete is False
+        assert hasattr(p, "relation_property_name")
+        assert hasattr(p, "rollup_property_name")
+        assert p_dict["rollup"]["function"] == "average"
+        assert p_dict["rollup"]["rollup_property_id"] == "mvpx"
+        assert "rollup_property_name" not in p_dict
+
+
+class TestPropertyFull:
+    def test_create__rollup_id(self, database_for_updates, database_for_pages):
+        assert "Relation 1" in database_for_updates.obj.properties
+        assert "Rollup 2" not in database_for_updates.obj.properties
+        relation_id = database_for_updates.obj.properties["Relation 1"].id
+        rollup_id = database_for_pages.obj.properties["when"].id
+        function = "earliest_date"
+        properties = {
+            "Rollup 2": Property.create(
+                "rollup", function=function,
+                relation_property_id=relation_id, rollup_property_id=rollup_id
+            )
+        }
+        database = database_for_updates.db_update(properties=properties)
+        assert "Rollup 2" in database.obj.properties
+        assert database.obj.properties["Rollup 2"].type == "rollup"
+
+        properties["Rollup 2"] = Property.create(None)
+        database = database.db_update(properties=properties)
+        assert "Rollup 2" not in database.obj.properties
+
+    def test_create__rollup_name(self, database_for_updates):
+        assert "Relation 1" in database_for_updates.obj.properties
+        assert "Rollup 2" not in database_for_updates.obj.properties
+        relation_name = "Relation 1"
+        rollup_name = "when"
+        function = "unique"
+        properties = {
+            "Rollup 2": Property.create(
+                "rollup", function=function,
+                relation_property_name=relation_name, rollup_property_name=rollup_name
+            )
+        }
+        database = database_for_updates.db_update(properties=properties)
+        assert "Rollup 2" in database.obj.properties
+        assert database.obj.properties["Rollup 2"].type == "rollup"
+
+        properties["Rollup 2"] = Property.create(None)
+        database = database.db_update(properties=properties)
+        assert "Rollup 2" not in database.obj.properties
+
+    def test_change__rollup(self, database_for_updates):
+        assert "Rollup 1" in database_for_updates.obj.properties
+        old_function = database_for_updates.obj.properties["Rollup 1"].function
+        old_relation_id = database_for_updates.obj.properties["Rollup 1"].relation_property_id
+        old_rollup_id = database_for_updates.obj.properties["Rollup 1"].rollup_property_id
+        new_function = "not_empty"
+        new_relation_name = "Relation 2"
+        new_rollup_name = "Tags"
+        properties = {
+            "Rollup 1": Property.create(
+                "rollup", function=new_function,
+                relation_property_name=new_relation_name, rollup_property_name=new_rollup_name
+            )
+        }
+        database = database_for_updates.db_update(properties=properties)
+        assert database.obj.properties["Rollup 1"].function == new_function
+        assert database.obj.properties["Rollup 1"].relation_property_name == "Relation 2"
+        assert database.obj.properties["Rollup 1"].rollup_property_name == new_rollup_name
+        # revert
+        properties = {
+            "Rollup 1": Property.create(
+                "rollup", function=old_function,
+                relation_property_id=old_relation_id, rollup_property_id=old_rollup_id
+            )
+        }
+        database = database.db_update(properties=properties)
+        assert database.obj.properties["Rollup 1"].function == old_function
+        assert database.obj.properties["Rollup 1"].rollup_property_id == old_rollup_id
+
 
 class TestPropertyValue:
     def test_create__status(self):

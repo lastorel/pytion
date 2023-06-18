@@ -237,10 +237,18 @@ class Property(object):
                     self.relation_property_id = data[self.type][self.subtype].get("synced_property_id")
                     self.relation_property_name = data[self.type][self.subtype].get("synced_property_name")
 
-        if self.type == "status":
+        elif self.type == "status":
             if isinstance(data[self.type], dict):
                 self.options = data[self.type].get("options", [])
                 self.groups = data[self.type].get("groups", [])
+
+        elif self.type == "rollup":
+            if isinstance(data[self.type], dict):
+                self.function = data[self.type].get("function")
+                self.relation_property_id = data[self.type].get("relation_property_id")
+                self.relation_property_name = data[self.type].get("relation_property_name")
+                self.rollup_property_id = data[self.type].get("rollup_property_id")
+                self.rollup_property_name = data[self.type].get("rollup_property_name")
 
     def __str__(self):
         return self.name if self.name else self.type
@@ -263,11 +271,21 @@ class Property(object):
                 data[self.type] = {self.subtype: {}, "database_id": self.relation.id}
             elif self.type == "status":
                 data[self.type] = {}
-                # not configurable
+                # not configurable by API
                 # if self.options:
                 #     data[self.type]["options"] = self.options
                 # if self.groups:
                 #     data[self.type]["groups"] = self.groups
+            elif self.type == "rollup":
+                data[self.type] = {"function": self.function}
+                if self.relation_property_id:
+                    data[self.type]["relation_property_id"] = self.relation_property_id
+                if self.relation_property_name:
+                    data[self.type]["relation_property_name"] = self.relation_property_name
+                if self.rollup_property_id:
+                    data[self.type]["rollup_property_id"] = self.rollup_property_id
+                if self.rollup_property_name:
+                    data[self.type]["rollup_property_name"] = self.rollup_property_name
             else:
                 data[self.type] = {}
         return data
@@ -286,12 +304,22 @@ class Property(object):
         set param `single_property` with `database_id` value OR
         set param `dual_property` with `database_id` value
         Property.create(type_="relation", dual_property="v111c132c12c1242341c41c")
+
+        + rollup type:
+        set param `function` from Nation API Rollup reference (BE AWARE ABOUT THE VALUE TYPE AND CHECK FUNCTION)
+        set param `relation_property_id` with Property ID with Relation type OR \
+        set param `relation_property_name` with Property NAME with Relation type
+        set param `rollup_property_id` with Property ID of related database OR \
+        set param `rollup_property_name` with Property NAME of related database
+        Property.create("rollup", function="average", relation_property_id="GHpm", rollup_property_id="mvpx")
         """
         if type_ == "relation":
             subtype = next(kwarg for kwarg in kwargs if kwarg in ("single_property", "dual_property"))
             kwargs["relation"] = {"type": subtype, subtype: {}, "database_id": kwargs[subtype]}
         elif type_ == "status":
             kwargs["status"] = {}
+        elif type_ == "rollup":
+            kwargs["rollup"] = kwargs
         return cls({"type": type_, **kwargs})
 
 
