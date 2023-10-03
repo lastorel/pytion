@@ -289,7 +289,7 @@ There are also useful **internal** classes:
 > `user = User.create('1d393ffb5efd4d09adfc2cb6738e4812')`  
 > `pv = PropertyValue.create(type_="people", value=[user])`  
 > [\*\*\*] - Every Base model like Page already has mandatory attributes created/last_edited returned by API  
-> [\*\*\*\*] - Status type is not configurable. API doesn't support NEW options added via Property modify or updating a Page
+> [\*\*\*\*] - Status type is not configurable. API doesn't support NEW options added via Property modify or updating a Page  
 > [\*\*\*\*\*] - Notion API hasn't `has_more` attr. Only 25 references can be shown in the array
 
 More details and examples can be found in Database [section](#property-values)
@@ -438,6 +438,11 @@ pages = db.db_filter(property_name="Price", property_type="number", condition="g
 pages = db.db_filter(
     property_name="WorkTime", property_type="date", condition="before",
     value=datetime.now(), descending="Deadline", limit=25
+)
+
+pages = db.db_filter(
+    property_name="last_edited_time", property_type="timestamp", condition="on_or_after",
+    value="2023-10-03", limit=1
 )
 ```
 

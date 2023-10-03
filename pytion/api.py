@@ -327,6 +327,7 @@ class Element(object):
         `.db_filter(property_name="Done", property_type="checkbox")`
         `.db_filter(property_name="Done", property_type="checkbox", value=False, descending="title")`
         `.db_filter(property_name="tags", property_type="multi_select", condition="is_not_empty")`
+        `.db_filter(property_name="created_time", property_type="timestamp", condition="before", value=datetime.now())`
         `.db_filter(raw=YOUR_BIG_DICT_FROM_NOTION_DOCS, limit=2)`
 
         Filters combinations are not supported. (in `raw` param only)

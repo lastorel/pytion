@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class Filter(object):
     _filter_condition_types = [
         "rich_text", "number", "checkbox", "select", "multi_select", "date", "phone_number", "people", "title",
-        "created_time", "last_edited_time", "phone_number", "status"
+        "created_time", "last_edited_time", "phone_number", "status", "timestamp"
     ]
 
     def __init__(
@@ -50,7 +50,7 @@ class Filter(object):
             self.property_name = property_name
 
         if self.property_type not in self._filter_condition_types:
-            raise ValueError(f"Allowed types {self.allowed_condition_types} ({property_type} is provided)")
+            raise ValueError(f"Allowed types {self.allowed_condition_types} ({property_type} provided)")
 
         if self.property_type == "rich_text":
             self.condition = "contains" if not condition else condition
@@ -82,7 +82,7 @@ class Filter(object):
         elif self.property_type == "title":
             self.condition = "contains" if not condition else condition
             self.value = str(value)
-        elif self.property_type == "date" or "_time" in self.property_type:
+        elif self.property_type == "date" or "_time" in self.property_type or self.property_type == "timestamp":
             self.condition = "equals" if not condition else condition
             if isinstance(value, datetime):
                 if not value.hour and not value.minute:
@@ -109,6 +109,14 @@ class Filter(object):
             "property": self.property_name,
             self.property_type: {self.condition: self.value}
         }
+        # #70
+        if "_time" in self.property_type:
+            del self.filter["property"]
+            self.filter["timestamp"] = self.property_type
+        if self.property_type == "timestamp":
+            del self.filter["property"]
+            self.filter["timestamp"] = self.property_name  # created_time or last_edited_time
+            self.filter[self.property_name] = {self.condition: self.value}
 
     @property
     def allowed_condition_types(self):
