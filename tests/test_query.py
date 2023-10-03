@@ -120,7 +120,7 @@ class TestRequest:
         r = no.session.method("post", path="databases", id_=db_id, after_path="query", data={}, limit=limit)
         assert isinstance(r, dict)
         assert r["object"] == "list"
-        assert r["type"] == "page"
+        assert r["type"] == "page_or_database"
         if limit == 101:
             assert len(r["results"]) == 100  # no pagination when limit is set
         else:
@@ -160,7 +160,7 @@ class TestRequest:
         r = no.session.method("post", path="databases", id_=db_id, after_path="query", data={})
         assert isinstance(r, dict)
         assert r["object"] == "list"
-        assert r["type"] == "page"
+        assert r["type"] == "page_or_database"
         assert len(r["results"]) == 201
         assert r["has_more"] is False
         assert r["next_cursor"] is None
