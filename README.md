@@ -371,6 +371,12 @@ no.blocks.block_append("9796f2525016128d9af4bf12b236b555", block=my_text_block) 
 # another way to append:
 my_page = no.pages.get("9796f2525016128d9af4bf12b236b555")
 my_page.block_append(block=my_text_block)
+
+# insert block after the existing block
+my_page.block_append(block=my_text_block, after="1496f2525016128d9af4bf12b236b000")
+# OR
+existing_block = no.blocks.get("1496f2525016128d9af4bf12b236b000")
+my_page.block_append(block=my_text_block, after=existing_block.obj)
 ```
 
 Create `to_do` block object:

@@ -539,8 +539,11 @@ class Element(object):
         return self
 
     def block_append(
-            self, id_: Optional[str] = None, block: Optional[Block] = None,
-            blocks: Optional[BlockArray, List[Block]] = None
+            self,
+            id_: Optional[str] = None,
+            block: Optional[Block] = None,
+            blocks: Optional[Union[BlockArray, List[Block]]] = None,
+            after: Optional[Union[Block, str]] = None,
     ) -> Optional[Element]:
         """
         Append block or blocks children
@@ -549,6 +552,7 @@ class Element(object):
 
         :param block:       Block to append OR
         :param blocks:          List[Block] or BlockArray to append
+        :param after:       the existing block that the new block should be appended after (Block or ID)
 
         :return:            self.obj -> BlockArray
 
@@ -569,6 +573,11 @@ class Element(object):
         if isinstance(block, Block):
             blocks = BlockArray([block], create=True)
         data = {"children": blocks.get()}
+        if after:
+            if isinstance(after, Block):
+                data["after"] = after.id
+            else:
+                data["after"] = after
 
         new_blocks = self.api.session.method(
             method="patch", path="blocks", id_=id_, after_path="children", data=data

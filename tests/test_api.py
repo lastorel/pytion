@@ -636,6 +636,19 @@ class TestElement:
             removed_block = no.blocks.block_update(block.id, archived=True)
             assert removed_block.obj.archived is True
 
+    def test_block_append__insert(self, no):
+        page = no.pages.get("36223246a20e42df8f9b354ed1f11d75")  # Page for updating
+        existing_block = no.blocks.get("60c20e13d2ae4ccbb81b5f8f2c532319")  # Queeery tests
+        my_block = Block.create("Such wow!")
+        blocks = page.block_append(block=my_block, after=existing_block.obj)
+        assert isinstance(blocks.obj, BlockArray)
+
+        blocks = page.get_block_children()
+        assert str(blocks.obj[1].text) == "Such wow!"
+        remove_block = blocks.from_object(blocks.obj[1])
+        removed_block = remove_block.block_update(archived=True)
+        assert removed_block.obj.archived is True
+
     def test_get_myself(self, no):
         bot = no.users.get_myself()
         assert isinstance(bot.obj, User)

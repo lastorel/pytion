@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.3.5
+
+- [#68](https://github.com/lastorel/pytion/issues/68): insert Block support
+- [#70](https://github.com/lastorel/pytion/issues/70): fix database filtering using `*_time` attribute
+
 ## v1.3.4
 
 - [#66](https://github.com/lastorel/pytion/issues/66): full support of `rollup` type properties
@@ -38,8 +43,8 @@
 - [#28](https://github.com/lastorel/pytion/issues/28): Add whoami method
 - [#16](https://github.com/lastorel/pytion/issues/16): Add search engine
 
-### Breaking changes
+### Breaking changes for 1.3.0
 
 - `Request()` method now looks for positional argument `api` for getting version (internal method)
-- Page has title=`unknown` until you retrieve its properties
+- Page has title=`unknown` until you retrieve its properties (deprecated statement)
 - `PropertyValue` with `relation` type now represents by list of `LinkTo` object instead of list of IDs
