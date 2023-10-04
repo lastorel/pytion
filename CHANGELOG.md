@@ -5,6 +5,7 @@
 - [#68](https://github.com/lastorel/pytion/issues/68): insert Block support
 - [#70](https://github.com/lastorel/pytion/issues/70): fix database filtering using `*_time` attribute
 - [#72](https://github.com/lastorel/pytion/issues/72): `public_url` attr added
+- [#73](https://github.com/lastorel/pytion/issues/73): Unique ID page property added
 
 ## v1.3.4
 
