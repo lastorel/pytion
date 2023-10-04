@@ -4,6 +4,7 @@
 
 - [#68](https://github.com/lastorel/pytion/issues/68): insert Block support
 - [#70](https://github.com/lastorel/pytion/issues/70): fix database filtering using `*_time` attribute
+- [#72](https://github.com/lastorel/pytion/issues/72): `public_url` attr added
 
 ## v1.3.4
 

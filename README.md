@@ -187,7 +187,7 @@ There is a list of available methods for communicate with **api.notion.com**. Th
 
 `.block_update(id_, block_obj, new_text, archived)` - Update text in Block.
 
-`.block_append(id_, block, blocks)` - Append block or blocks children.
+`.block_append(id_, block, blocks, after)` - Append block or blocks children.
 
 `.get_myself()` - Retrieve my bot User.
 
@@ -218,12 +218,14 @@ There are classes **based on API** structures:
   - use `.db_filter()` to get database content with filtering and/or sorting
   - has `.description` attr
   - has `.is_inline` attr with the value True if the database appears in the page as an inline block
+  - has `.public_url` attr when a page or database has been shared publicly
 - `Page` based on [Page object](https://developers.notion.com/reference/page)
   - You can create object `Page.create(...)` and/or use `.page_create(...)` API method
   - use `.page_update()` method to modify attributes or delete the page
   - use `.get_block_children()` to get page content (without nested blocks) (it will be `BlockArray`)
   - use `.get_block_children_recursive()` to get page content with nested blocks
   - use `.get_page_property()` to retrieve the specific `PropertyValue` of the page
+  - has `.public_url` attr when a page or database has been shared publicly
 - `Block` based on [Block object](https://developers.notion.com/reference/block)
   - You can create object `Block.create(...)` of specific type from [_support matrix_](#supported-block-types) below and then use it while creating pages or appending
   - use `.block_update()` to replace content or change _extension attributes_ or delete the block

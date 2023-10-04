@@ -562,6 +562,7 @@ class Database(Model):
         }
         self.parent = kwargs["parent"] if isinstance(kwargs.get("parent"), LinkTo) else LinkTo(**kwargs["parent"])
         self.url: str = kwargs.get("url")
+        self.public_url = kwargs.get("public_url")
         self.description = None
         if "description" in kwargs and kwargs["description"]:
             if isinstance(kwargs["description"], RichTextArray):
@@ -614,6 +615,7 @@ class Page(Model):
         self.parent = kwargs["parent"] if isinstance(kwargs.get("parent"), LinkTo) else LinkTo(**kwargs["parent"])
         self.archived: bool = kwargs.get("archived")
         self.url: str = kwargs.get("url")
+        self.public_url = kwargs.get("public_url")
         self.children = kwargs["children"] if "children" in kwargs else LinkTo(block=self)
         self.properties = {
             name: (PropertyValue(data, name) if not isinstance(data, PropertyValue) else data)
