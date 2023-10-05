@@ -50,6 +50,15 @@ class InvalidRequest(ClientError):
         Exception.__init__(self, message)
 
 
+class InvalidGrant(ClientError):
+    def __init__(self, req: Response):
+        message = (
+            "The provided authorization grant or refresh token is invalid, expired, revoked, "
+            "does not match the redirection URI used in the authorization request"
+        )
+        Exception.__init__(self, message)
+
+
 class ValidationError(ClientError):
     def __init__(self, content: Dict):
         message = content.get("message")
@@ -157,6 +166,8 @@ def find_response_error(req: Response) -> Dict:
             raise InvalidRequestURL(req)
         elif error_code == "invalid_request":
             raise InvalidRequest(req)
+        elif error_code == "invalid_grant":
+            raise InvalidGrant(req)
         elif error_code == "validation_error":
             raise ValidationError(content)
         elif error_code == "missing_version":

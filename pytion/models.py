@@ -250,6 +250,10 @@ class Property(object):
                 self.rollup_property_id = data[self.type].get("rollup_property_id")
                 self.rollup_property_name = data[self.type].get("rollup_property_name")
 
+        elif self.type == "unique_id":
+            if isinstance(data[self.type], dict):
+                self.prefix = data[self.type].get("prefix")
+
     def __str__(self):
         return self.name if self.name else self.type
 
@@ -286,6 +290,8 @@ class Property(object):
                     data[self.type]["rollup_property_id"] = self.rollup_property_id
                 if self.rollup_property_name:
                     data[self.type]["rollup_property_name"] = self.rollup_property_name
+            elif self.type == "unique_id":
+                data[self.type] = {"prefix": self.prefix}
             else:
                 data[self.type] = {}
         return data
@@ -320,6 +326,8 @@ class Property(object):
             kwargs["status"] = {}
         elif type_ == "rollup":
             kwargs["rollup"] = kwargs
+        elif type_ == "unique_id":
+            kwargs["unique_id"] = kwargs
         return cls({"type": type_, **kwargs})
 
 
@@ -448,6 +456,9 @@ class PropertyValue(Property):
         if self.type == "phone_number":
             self.value: Optional[str] = data.get("phone_number")
 
+        if self.type == "unique_id":
+            self.value: int = data["unique_id"]["number"] if "number" in data["unique_id"] else 0
+
     def __str__(self):
         return str(self.value)
 
@@ -511,7 +522,7 @@ class PropertyValue(Property):
             return {self.type: []}
         elif self.type in ["created_time", "last_edited_by", "last_edited_time", "created_by"]:
             return None
-        elif self.type in ["formula", "rollup"]:
+        elif self.type in ["formula", "rollup", "unique_id"]:
             return {self.type: {}}
         return None
 
@@ -562,6 +573,7 @@ class Database(Model):
         }
         self.parent = kwargs["parent"] if isinstance(kwargs.get("parent"), LinkTo) else LinkTo(**kwargs["parent"])
         self.url: str = kwargs.get("url")
+        self.public_url = kwargs.get("public_url")
         self.description = None
         if "description" in kwargs and kwargs["description"]:
             if isinstance(kwargs["description"], RichTextArray):
@@ -614,6 +626,7 @@ class Page(Model):
         self.parent = kwargs["parent"] if isinstance(kwargs.get("parent"), LinkTo) else LinkTo(**kwargs["parent"])
         self.archived: bool = kwargs.get("archived")
         self.url: str = kwargs.get("url")
+        self.public_url = kwargs.get("public_url")
         self.children = kwargs["children"] if "children" in kwargs else LinkTo(block=self)
         self.properties = {
             name: (PropertyValue(data, name) if not isinstance(data, PropertyValue) else data)

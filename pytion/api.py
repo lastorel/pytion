@@ -327,6 +327,7 @@ class Element(object):
         `.db_filter(property_name="Done", property_type="checkbox")`
         `.db_filter(property_name="Done", property_type="checkbox", value=False, descending="title")`
         `.db_filter(property_name="tags", property_type="multi_select", condition="is_not_empty")`
+        `.db_filter(property_name="created_time", property_type="timestamp", condition="before", value=datetime.now())`
         `.db_filter(raw=YOUR_BIG_DICT_FROM_NOTION_DOCS, limit=2)`
 
         Filters combinations are not supported. (in `raw` param only)
@@ -538,8 +539,11 @@ class Element(object):
         return self
 
     def block_append(
-            self, id_: Optional[str] = None, block: Optional[Block] = None,
-            blocks: Union[BlockArray, List[Block], None] = None
+            self,
+            id_: Optional[str] = None,
+            block: Optional[Block] = None,
+            blocks: Optional[Union[BlockArray, List[Block]]] = None,
+            after: Optional[Union[Block, str]] = None,
     ) -> Optional[Element]:
         """
         Append block or blocks children
@@ -548,6 +552,7 @@ class Element(object):
 
         :param block:       Block to append OR
         :param blocks:          List[Block] or BlockArray to append
+        :param after:       the existing block that the new block should be appended after (Block or ID)
 
         :return:            self.obj -> BlockArray
 
@@ -568,6 +573,11 @@ class Element(object):
         if isinstance(block, Block):
             blocks = BlockArray([block], create=True)
         data = {"children": blocks.get()}
+        if after:
+            if isinstance(after, Block):
+                data["after"] = after.id
+            else:
+                data["after"] = after
 
         new_blocks = self.api.session.method(
             method="patch", path="blocks", id_=id_, after_path="children", data=data

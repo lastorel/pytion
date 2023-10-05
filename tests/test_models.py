@@ -66,6 +66,15 @@ class TestProperty:
         assert p_dict["rollup"]["rollup_property_id"] == "mvpx"
         assert "rollup_property_name" not in p_dict
 
+    def test_create__unique_id(self):
+        p = Property.create("unique_id", prefix="TT")
+        p_dict = p.get()
+        assert p.id is None
+        assert p.type == "unique_id"
+        assert p.to_delete is False
+        assert hasattr(p, "prefix")
+        assert p_dict["unique_id"]["prefix"] == "TT"
+
 
 class TestPropertyFull:
     def test_create__rollup_id(self, database_for_updates, database_for_pages):
@@ -137,6 +146,11 @@ class TestPropertyFull:
         assert database.obj.properties["Rollup 1"].function == old_function
         assert database.obj.properties["Rollup 1"].rollup_property_id == old_rollup_id
 
+    def test_create__unique_id(self):
+        # don't test creating unique_id property.
+        # on second iteration it breaks the database (error 500)
+        pass
+
 
 class TestPropertyValue:
     def test_create__status(self):
@@ -153,6 +167,14 @@ class TestPropertyValue:
         assert pv.type == "relation"
         assert pv.has_more is False
         assert p_dict["relation"][0]["id"] == "04262843082a478d97f741948a32613c"
+
+
+class TestPropertyValueFull:
+    def test_read__unique_id(self, no, little_database):
+        page = no.pages.get("b85877eaf7bf4245a8c5218055eeb81f")
+        assert "uID" in little_database.obj.properties
+        assert little_database.obj.properties["uID"].prefix == "LD"
+        assert page.obj.properties["uID"].value == 3
 
 
 class TestBlock:

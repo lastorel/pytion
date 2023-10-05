@@ -187,7 +187,7 @@ There is a list of available methods for communicate with **api.notion.com**. Th
 
 `.block_update(id_, block_obj, new_text, archived)` - Update text in Block.
 
-`.block_append(id_, block, blocks)` - Append block or blocks children.
+`.block_append(id_, block, blocks, after)` - Append block or blocks children.
 
 `.get_myself()` - Retrieve my bot User.
 
@@ -218,12 +218,14 @@ There are classes **based on API** structures:
   - use `.db_filter()` to get database content with filtering and/or sorting
   - has `.description` attr
   - has `.is_inline` attr with the value True if the database appears in the page as an inline block
+  - has `.public_url` attr when a page or database has been shared publicly
 - `Page` based on [Page object](https://developers.notion.com/reference/page)
   - You can create object `Page.create(...)` and/or use `.page_create(...)` API method
   - use `.page_update()` method to modify attributes or delete the page
   - use `.get_block_children()` to get page content (without nested blocks) (it will be `BlockArray`)
   - use `.get_block_children_recursive()` to get page content with nested blocks
   - use `.get_page_property()` to retrieve the specific `PropertyValue` of the page
+  - has `.public_url` attr when a page or database has been shared publicly
 - `Block` based on [Block object](https://developers.notion.com/reference/block)
   - You can create object `Block.create(...)` of specific type from [_support matrix_](#supported-block-types) below and then use it while creating pages or appending
   - use `.block_update()` to replace content or change _extension attributes_ or delete the block
@@ -277,6 +279,7 @@ There are also useful **internal** classes:
 | `formula`                |                                  | -         | +                 | -           | n/a                 |                                     |                                                                                                              |
 | `relation`               | `List[LinkTo]`                   | +         | +                 | +           | +                   | `has_more: bool`                    | `single_property` / `dual_property`                                                                          |
 | `rollup`                 | depends on relation and function | +         | +                 | +           | n/a                 | ~~has_more~~\*\*\*\*\*              | `function`, `relation_property_id` / `relation_property_name`, `rollup_property_id` / `rollup_property_name` |
+| `unique_id`              | `int`                            | +         | +                 | +           | n/a                 |                                     | `prefix`                                                                                                     |
 | `created_time`\*\*\*     | `datetime`                       | +         | +                 | +           | n/a                 |                                     |                                                                                                              |
 | `created_by`\*\*\*       | `User`                           | +         | +                 | +           | n/a                 |                                     |                                                                                                              |
 | `last_edited_time`\*\*\* | `datetime`                       | +         | +                 | +           | n/a                 |                                     |                                                                                                              |
@@ -289,7 +292,7 @@ There are also useful **internal** classes:
 > `user = User.create('1d393ffb5efd4d09adfc2cb6738e4812')`  
 > `pv = PropertyValue.create(type_="people", value=[user])`  
 > [\*\*\*] - Every Base model like Page already has mandatory attributes created/last_edited returned by API  
-> [\*\*\*\*] - Status type is not configurable. API doesn't support NEW options added via Property modify or updating a Page
+> [\*\*\*\*] - Status type is not configurable. API doesn't support NEW options added via Property modify or updating a Page  
 > [\*\*\*\*\*] - Notion API hasn't `has_more` attr. Only 25 references can be shown in the array
 
 More details and examples can be found in Database [section](#property-values)
@@ -373,6 +376,12 @@ no.blocks.block_append("9796f2525016128d9af4bf12b236b555", block=my_text_block) 
 # another way to append:
 my_page = no.pages.get("9796f2525016128d9af4bf12b236b555")
 my_page.block_append(block=my_text_block)
+
+# insert block after the existing block
+my_page.block_append(block=my_text_block, after="1496f2525016128d9af4bf12b236b000")
+# OR
+existing_block = no.blocks.get("1496f2525016128d9af4bf12b236b000")
+my_page.block_append(block=my_text_block, after=existing_block.obj)
 ```
 
 Create `to_do` block object:
@@ -440,6 +449,11 @@ pages = db.db_filter(property_name="Price", property_type="number", condition="g
 pages = db.db_filter(
     property_name="WorkTime", property_type="date", condition="before",
     value=datetime.now(), descending="Deadline", limit=25
+)
+
+pages = db.db_filter(
+    property_name="last_edited_time", property_type="timestamp", condition="on_or_after",
+    value="2023-10-03", limit=1
 )
 ```
 
