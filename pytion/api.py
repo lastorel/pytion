@@ -428,7 +428,7 @@ class Element(object):
             parent: Optional[LinkTo] = None,
             properties: Optional[Dict[str, PropertyValue]] = None,
             title: Optional[Union[str, RichTextArray]] = None,
-            children: Optional[BlockArray, List[Block]] = None,
+            children: Union[BlockArray, List[Block], None] = None,
     ) -> Optional[Element]:
         """
         :param page_obj:      you can provide `Page` object or -

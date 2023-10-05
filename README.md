@@ -297,6 +297,8 @@ There are also useful **internal** classes:
 
 More details and examples can be found in Database [section](#property-values)
 
+More details and examples can be found in Database [section](#property-values)
+
 
 ## Supported block types
 
